@@ -2,119 +2,109 @@
 #+DATE: \today
 #+options: toc:nil author:nil
 
-#+LATEX_CLASS: IEEEtran
-#+LATEX_CLASS_OPTIONS: [conference, onecolumn, 12pt]
+#+LATEX_CLASS: article
+#+LATEX_CLASS_OPTIONS: [12pt]
+#+LATEX_HEADER: \usepackage[margin=1in]{geometry}
+#+LATEX_HEADER: \usepackage{times}
+#+LATEX_HEADER: \usepackage[parfill]{parskip}
+#+LATEX_HEADER: \usepackage{amsmath}
+#+LATEX_HEADER: \usepackage{graphicx}
 #+LATEX_HEADER: \usepackage{wrapfig}
 #+LATEX_HEADER: \usepackage{needspace}
-# #+LATEX_HEADER: \setlength{\intextsep}{6pt plus 2pt minus 2pt}
-# #+LATEX_HEADER: \setlength{\columnsep}{10pt}
-
-# #+LATEX_HEADER: \author{
-# #+LATEX_HEADER:   \IEEEauthorblockN{Dr. Tim Ransom}
-# #+LATEX_HEADER:   \IEEEauthorblockA{
-# #+LATEX_HEADER:     School of Computing \\
-# #+LATEX_HEADER:     Clemson University \\
-# #+LATEX_HEADER:     Clemson, SC\\
-# #+LATEX_HEADER:   }
-# #+LATEX_HEADER:   \and
-# #+LATEX_HEADER:   \IEEEauthorblockN{Dr. Stephanie Ashley Damas}
-# #+LATEX_HEADER:   \IEEEauthorblockA{
-# #+LATEX_HEADER:     Department of Engineering \\
-# #+LATEX_HEADER:     Another University \\
-# #+LATEX_HEADER:     City, State
-# #+LATEX_HEADER:   }
-# #+LATEX_HEADER: }
+#+LATEX_HEADER: \usepackage{titlesec}
+#+LATEX_HEADER: \titleformat*{\section}{\normalsize\bfseries}
+#+LATEX_HEADER: \titleformat*{\subsection}{\normalsize\bfseries}
+#+LATEX_HEADER: \usepackage{titling}
+#+LATEX_HEADER: \pretitle{\begin{center}\large\bfseries}
+#+LATEX_HEADER: \posttitle{\end{center}}
+#+LATEX_HEADER: \PassOptionsToPackage{numbers,super}{natbib}
+#+BIBLIOGRAPHY: bibliography.bib
+#+cite_export: natbib unsrtnat
 
 #+begin_abstract
-This work in progress submission outlines advancements in detecting interdisciplinary collaboration in undergraduate STEM student curriculum choices using the MIDFIELD dataset. We employ a vectorized approach to analyze student course records, enabling detailed metrics to describe the relationships between domains.
-
-We highlight engineering and computing programs for their histories of interdisciplinarity and emerging sub-disciplines as well as present overall "standard" degrees from major STEM domains. This study aims to inform curriculum design and promote interdisciplinary collaboration both at the student level and the curriculum design level by identifying latent student interests and potential areas for collaborative curriculum development.
+This work in progress applies multiple similarity metrics to course enrollment vectors derived from the MIDFIELD dataset to characterize relationships between undergraduate STEM programs. We employ five complementary measures---Jaccard, TF-IDF Cosine, Overlap Coefficient, PMI, and Kulczynski---to distinguish curricular width, specialized identity, subset relations, signature course bonds, and mutual resemblance. Three relationship categories emerge from the metric analysis: /nested/ relationships, where one program's coursework is largely contained within another; /parallel/ relationships, where programs share a common curricular base but diverge in specialization; and /convergent/ relationships, where programs share both general and specialized content at high levels. Applied to computing, engineering, science, and cross-domain STEM groupings, the approach surfaces non-obvious pairings such as Aerospace and Industrial Engineering---a convergent pair with the highest specialized technical similarity (~45% TF-IDF Cosine) in the engineering group despite occupying different traditional sub-disciplines. We address the research question: /What types of curricular relationships have emerged between undergraduate STEM programs as evidenced by student enrollment patterns?/ Preliminary results and implications for curriculum design are discussed.
 #+end_abstract
 
-#+begin_IEEEkeywords
-Education; Curriculum Analysis
-#+end_IEEEkeywords
-
-* Reviewer comments :noexport:
-
-This work is quite relevant and timely in STEM education. Moreover, the dataset provides the study's credibility.
-
-The abstract lacks clear research questions, metrics (e.g., indicators and statistics), outcomes, data visualization techniques, and potential implications. Please clarify methods and expected outcomes/benefits.
+/Keywords:/ Interdisciplinary Education, Curriculum Analysis, MIDFIELD, Similarity Metrics
 
 * Introduction
 
 ** Study Motivation
 
-Students often have a level of agency in the courses they take on their paths to graduation, opting to take courses that may not be housed in their declared major's department. This indicates that the student has knowledge, skills, or attitudes (KSAs) from several disciplines and are interdisciplinary in their education. Courses frequently chosen by students in a given domain indicate a trend that we interpret as overlap between programs.
+Students often have a level of agency in the courses they take on their paths to graduation, opting to take courses that may not be housed in their declared major's department. Such cross-departmental enrollment indicates that students acquire knowledge, skills, or attitudes (KSAs) from several disciplines and are, to some degree, interdisciplinary in their education. Courses frequently chosen by students in a given domain indicate a trend that we interpret as overlap between programs.
 
-Interdisciplinary studies integrate concepts, theories, and methods from multiple disciplines. In interdisciplinary majors, there is a deliberate effort to create a new perspective or approach that is not limited to any single discipline. This results in a deeper understanding of complex issues. Even further, interdisciplinary majors create space for impossible solutions within the confines of a single discipline. While multidisciplinary majors have also been used to collaborate across disciplines, interdisciplinary majors use a combination of tools interchangeable from the distinct disciplines.
+Interdisciplinary studies integrate concepts, theories, and methods from multiple disciplines [cite:@klein1990interdisciplinarity]. In interdisciplinary majors, there is a deliberate effort to create a new perspective or approach that is not limited to any single discipline, resulting in a deeper understanding of complex issues. Interdisciplinary majors create space for solutions that would be impossible within the confines of a single discipline. While multidisciplinary approaches also draw on multiple fields, interdisciplinary programs combine tools and methods from distinct disciplines into an integrated whole [cite:@klein1990interdisciplinarity].
 
-Implementing interdisciplinary majors can make STEM programs more attractive to students with marginalized identities who seek to bridge the gap between their lived experiences and computer science fundamentals. As such, this study aims to identify fundamental courses and academic choices that programs can use to facilitate applicability across domains.
+Interdisciplinary programs can make STEM more attractive to students with marginalized identities who seek to bridge the gap between their lived experiences and technical fundamentals [cite:@marquardt2023engaging]. Franco et al. demonstrated that interdisciplinary quantitative initiatives can broaden participation in data-intensive fields [cite:@franco2020enhancing]. Identifying the courses and academic choices that facilitate cross-domain applicability is therefore both a curricular design concern and an equity concern.
 
-This study helps lay the groundwork for promoting interdisciplinary majors between STEM fields. We are interested in the research question: What types of relationships have emerged between undergraduate STEM programs from student enrollment?
+We build on this foundation with the research question: /What types of curricular relationships have emerged between undergraduate STEM programs as evidenced by student enrollment patterns?/
 
 ** Application Spaces
 
-This work analyzes undergraduate navigation through STEM domains using robust data set provided by the Multiple-Institution Database for Investigating Engineering Longitudinal Development (MIDFIELD). We identify relationships between STEM degrees, including "parent-child" and "intellectual-cousin" relationships, to understand the current interdisciplinary interactions as well as identify emerging and potential interactions. A shared set of courses completed by students during their paths to graduate indicate an overlap between intellectual domains.
+This work analyzes undergraduate navigation through STEM domains using the Multiple-Institution Database for Investigating Engineering Longitudinal Development (MIDFIELD) [cite:@lord2022midfield]. We identify relationships between STEM degrees and classify them using three categories that emerge from the metric analysis:
 
-We use student enrollment in courses as a proxy to determine what fields they invest their efforts into and possibly see as relevant for their immediate career paths or to explore alternative academic interests. At the student level, this analysis informs academic advisors about which classes are likely to interest students seeking to explore courses. At the department level, these relationships can help curriculum design committees identify where courses may be likely to succeed when hosted in other departments or where additional collaboration may already exist but be undocumented. At a university level, these relationship can be used to build a case for interdisciplinary majors and to identify if existing departments are good candidates to create a new major. If an institution has a pairing of domains well established at their institution, a high course overlap indicates interest in collaborative curriculum development.
+- A *nested* relationship exists when the Overlap Coefficient between two programs is high while the Jaccard index is comparatively low, indicating that the smaller program functions as a specialized subset of the larger one. Information Technology and Computer Science exemplify this pattern: ~80% of IT coursework overlaps with CS, but their Jaccard index is only ~8.5% because CS covers far more ground.
+- A *parallel* relationship exists when two programs share a substantial common base (high Jaccard or Kulczynski) but diverge in their specialized content (low TF-IDF Cosine). Most engineering sub-disciplines exhibit this pattern---for example, Electrical Engineering and Civil Engineering share a high proportion of their total coursework through the general engineering core, yet their TF-IDF similarity is very low because their specialized courses are distinct.
+- A *convergent* relationship exists when two programs score high across all metrics---sharing both general coursework and specialized technical content---suggesting deep curricular alignment that may not be reflected in departmental organization. Aerospace Engineering and Industrial Engineering exemplify this: they produce the highest or near-highest similarity in the engineering group on every metric (TF-IDF ~45%, Jaccard ~47%, Overlap ~79%).
 
-Various metrics are used to understand the type of interdisciplinary relationship between domains to help all levels of education accurately understand trends across the MIDFIELD dataset.
-# By understanding the presence and type of relationship being expressed through student enrollment decisions, departments can better position themselves for interdisciplinary collaboration and institutions can better address national issues requiring and calling for interdisciplinary solutions.
+We use student enrollment in courses as a proxy to determine what fields students invest their efforts into and what they see as relevant for their career paths. We acknowledge that enrollment patterns reflect not only student interest but also degree requirements, prerequisite structures, and scheduling constraints. Our analysis therefore identifies /curricular overlap/---the extent to which student paths through programs share common coursework---rather than measuring interdisciplinary integration of knowledge per se. Where patterns exceed what degree requirements alone would predict, they may indicate genuine student interest in cross-domain study.
+
+At the student level, this analysis informs academic advisors about which courses are likely to interest students seeking cross-domain exploration. At the department level, these relationships can help curriculum design committees identify where courses may succeed when hosted in other departments or where undocumented collaboration already exists. At the university level, these relationships can support the case for new interdisciplinary programs. If an institution has a pairing of domains with high course overlap, that overlap indicates existing demand for collaborative curriculum development.
 
 ** Background
 
-Several STEM domains have been historically interdisciplinary. The computing domain has created new interdisciplinary programs as it engages with other knowledge branches such as human centered computing and bioinformatics. These specialized programs offer a targeted approach to solving complex issues and act as a point of attraction for students to enroll in one University or department over another. These interdisciplinary programs' curricula often include courses from their respective "parent" fields. For example, a bioinformatics curriculum can consist of courses from both computer science departments and biology departments. Specialized courses are often also created in the "child" field to meet the needs of interdisciplinary students. Many engineering programs include a general engineering component to their curriculum that give a shared set of KSAs to engineering, creating more of an "intellectual cousin relationship." Overall trends that emerge from considering the relationships between STEM domains as units of analysis can inform several levels of our education system to better support student academic agency and build interdisciplinary collaboration.
+Several STEM domains have been historically interdisciplinary. The computing domain has created new interdisciplinary programs as it engages with other knowledge branches such as human-centered computing and bioinformatics [cite:@denning2019computational]. These specialized programs offer a targeted approach to solving complex issues and act as a point of attraction for students to enroll in one university or department over another. The curricula of these interdisciplinary programs often include courses from their broader source fields. For example, a bioinformatics curriculum draws courses from both computer science and biology departments, and its coursework may be largely nested within either parent field's catalog. Specialized courses are also often created in the narrower field to meet the needs of interdisciplinary students. Many engineering programs include a general engineering component that gives a shared set of KSAs to all engineering students, creating parallel relationships where programs share a common base but diverge in specialization. Lord et al. have demonstrated the value of MIDFIELD for longitudinal studies of engineering student trajectories [cite:@lord2022midfield], and recent work in curricular analytics has shown the potential of quantitative approaches to curriculum evaluation [cite:@heileman2018curricular]. Our work extends these resources to cross-domain curricular analysis. Overall trends that emerge from considering the relationships between STEM domains as units of analysis can inform several levels of our education system to better support student academic agency and build interdisciplinary collaboration.
 
 ** Need for Convergence
 
-Many students matriculate through courses by developing the KSAs that represent their chosen domain. By attaining a degree, students are expected to be prepared to enter the workforce and contribute to solutions to real-world problems using these KSAs. The National Science Foundation has identified several BIG Problems of our generation that require complex solutions guided by contributions from many fields. The NSF proposed growing convergence research as one of the top 10 BIG Ideas to address today's grand challenges. The nation's grand challenges "will not be solved by one discipline alone". They require convergence: merging ideas, approaches and technologies from widely diverse fields of knowledge to stimulate innovation and discovery. To prepare our students to take on the grand challenges, we must evaluate curriculum development to facilitate interdisciplinary studies.
+Students develop the KSAs that represent their chosen domain as they progress through their coursework. Upon attaining a degree, graduates are expected to be prepared to contribute to real-world problem solving using these KSAs. The National Science Foundation has identified several grand challenges of our generation that require complex solutions guided by contributions from many fields. The NSF proposed growing convergence research as one of the top 10 BIG Ideas to address today's grand challenges [cite:@nsf2016bigideas]: the nation's grand challenges "will not be solved by one discipline alone" and instead require merging ideas, approaches, and technologies from widely diverse fields of knowledge to stimulate innovation and discovery. To prepare our students to take on these grand challenges, we must evaluate curriculum development to facilitate interdisciplinary studies. In our analysis below, we use the term "convergent" to describe a specific metric pattern where two programs share both general and specialized content at high levels. This is related to but distinct from the NSF's use of "convergence" to describe the merging of disciplinary approaches; convergent programs, as we define them, may be natural sites for the kind of convergence research the NSF envisions.
 
 * Methodology
 
-We use the MIDFIELD dataset to collect records of classes that students were enrolled in during their education. Their paths to graduation are analyzed to determine overlap between STEM domains. We have extended this analysis to account for both the presence of course overlap, but also magnitude, enriching the analysis and revealing a higher granularity of interpretation. Data visualization techniques are being developed to present this information in an intuitive manner.
+We use the MIDFIELD dataset [cite:@lord2022midfield] to collect records of courses that students were enrolled in during their education. Student paths to graduation are analyzed to determine curricular overlap between STEM domains. We extend our prior work that relied on binary course presence (enabling only Jaccard indices) by incorporating course frequency data, which enables a suite of complementary similarity metrics that each reveal a different facet of the relationship between programs.
 
 ** Data Source
 
-The MIDFIELD dataset provides a rich academic record of over 98,000 student course records from eighteen universities in the USA going back several decades. We filter to data from 2000 onward to address the potential overrepresentation of older degree curricula and to better engage with curricula that are likely to represent a contemporary student's experience.
+The MIDFIELD dataset provides academic records of over 98,000 students from eighteen universities in the USA going back several decades [cite:@lord2022midfield]. We filter to data from 2000 onward to address the potential overrepresentation of older degree curricula and to better engage with curricula that are likely to represent a contemporary student's experience.
 
 ** Data Analysis
 
-For each CIP code in the MIDFIELD dataset, a set of courses is identified that any student who completed that degree took while progressing toward graduation. These sets include every course students took, including general education courses, courses in and out of their declared major, courses that were begun but not completed, and courses that were required for their graduation and not. This set of courses is then augmented with the frequency of the courses presence in the dataset to create a vector. These vectors represent the domains in a many-dimensional space that enables several metrics which we interpret in the next section. Previous reported analyses relied solely on the binary interpretation of the data, which only enabled Jaccard indices. While useful, this metric (described in the next section) gives us one view into the relationship between domains. Metrics are then used to describe domain similarity, and therefore distance-based clusters and relationships between domains.
+For each CIP code (Classification of Instructional Programs [cite:@nces2020cip]) in the MIDFIELD dataset, a set of courses is identified that any student who completed that degree took while progressing toward graduation. These sets include every course students took: general education courses, courses in and out of their declared major, courses that were begun but not completed, and courses that were both required and elective. Each course set is then augmented with the frequency of each course's presence in the dataset to create a vector. These vectors represent the domains in a many-dimensional space that enables the metrics interpreted in the next section. By incorporating course frequency rather than binary presence alone, we can apply multiple similarity metrics to the same vectorized data, enabling distinctions among subset containment, specialized identity, and statistically surprising co-enrollment that a single metric cannot capture.
 
-** Metric Interpretations within the MIDFIELD dataset
+** Metric Selection Rationale
 
-*** Jaccard Index (Binary Overlap)
+A single similarity metric cannot distinguish between programs that share a broad general-education base and programs that share specialized technical content. We select metrics that each address a specific analytical limitation, as summarized below. Together, the suite separates curricular width from specialized identity, detects subset containment, and identifies statistically surprising co-enrollment bonds.
 
-This is the baseline metric. In the MIDFIELD dataset, it reflects the total shared curriculum. However, because it treats every course taken by even one student as a set member, it can be easily diluted by rare electives, often resulting in lower scores for very large or diverse programs.
+*** Jaccard Index (Curricular Width)
+
+The Jaccard index [cite:@jaccard1912distribution] serves as our baseline. It measures the proportion of courses shared across the union of two programs' course sets. Because it treats every course taken by even one student as a set member, it can be diluted by rare electives, often resulting in lower scores for very large or diverse programs. It answers: /How much total curricular territory do two programs share?/
 
 $$J(A, B) = \frac{|A \cap B|}{|A \cup B|}$$
 
-*** Term Frequency-Inverse Document Frequency (TF-IDF, Specific Curricular Bonds)
+*** TF-IDF Cosine (Specialized Identity)
 
-This metric is used to highlight a core of the domain, identifying the specific courses that are both represented within the domain and rare in other domains. We use it to reduce the background noise of very sparsely enrolled courses taken by students. It is highly resistant to major size because it uses normalized frequencies of courses taken. A course like /Calculus I/ (taken by many majors) gets low weight, while /Advanced Microcontrollers/ (unique to a few) gets high weight.
+Where Jaccard treats all courses equally, TF-IDF [cite:@sparckjones1972statistical;@salton1988term] weights courses by their specificity. A course like /Calculus I/ (taken by many majors) gets low weight, while /Advanced Microcontrollers/ (unique to a few) gets high weight. The cosine of the resulting TF-IDF vectors measures whether two programs share identity-defining coursework rather than generic prerequisites. This metric is resistant to differences in program size because it uses normalized frequencies. It answers: /Do two programs share the specialized courses that define their identities?/
 
 $$\text{Cosine Similarity} = \frac{\mathbf{v}_A \cdot \mathbf{v}_B}{\|\mathbf{v}_A\| \|\mathbf{v}_B\|}$$
 
-
 *** Overlap Coefficient (Subset Detection)
 
-This metric helps identify "parent-child" relationships between domains. Intersection size divided by the size of the smaller set. For example, if Software Engineering students take almost everything Computer Science students take, but the CS students have a much broader elective set, the Overlap Coefficient will stay high while Jaccard index drops. Majors that are specialized from broader curricula have a high overlap metric.
+The Overlap Coefficient [cite:@szymkiewicz1934contribution;@simpson1960faunal] divides the intersection size by the size of the smaller set. A high Overlap Coefficient paired with a low Jaccard index is the signature of a nested relationship: the smaller program's coursework is largely contained within the larger one. For example, if Software Engineering students take almost everything Computer Science students take, but CS students have a much broader elective set, the Overlap Coefficient remains high while the Jaccard score drops. It answers: /Is one program's curriculum largely a subset of another's?/
 
 $$\text{Overlap}(A, B) = \frac{|A \cap B|}{\min(|A|, |B|)}$$
 
 *** PMI Similarity (Signature Bonds)
 
-Pointwise Mutual Information measures if a course-major pairing occurs more often than would be expected if they were independent. This is the most sensitive metric for "signature" behaviors. It shows the courses that students are surprised to be in unless they are in that specific major. We use it to distinguish between highly similar programs.
+Pointwise Mutual Information [cite:@church1990word] measures whether a course-major pairing occurs more often than would be expected if they were independent. A high PMI value indicates courses that are characteristic of a specific pair of programs and unlikely to appear together by chance. We use Positive PMI (clamping negative values to zero) and compute cosine similarity over the resulting vectors. It answers: /Do two programs share courses that are statistically surprising for both?/
 
 $$\text{PMI}(m, c) = \log \left( \frac{p(m, c)}{p(m)p(c)} \right)$$
 
 *** Max-Scaled Cosine (Internal Core) :noexport:
-Normalizes all course counts relative to the single most popular course within that major.
+Normalizes all course counts relative to the single most popular course within each major, then computes cosine similarity.
 
 $$x_{scaled} = \frac{x}{\max(\mathbf{x}_{major})}$$
 
-This reflects the "standard experience" of a major. By scaling everything to the major's own "anchor" course, it removes the effect of different graduation rates and focuses purely on the internal structure of what a "typical" student takes.
+This reflects the "standard experience" of a major. By scaling everything to the major's own anchor course, it removes the effect of different graduation rates and focuses purely on the internal structure of what a typical student takes.
 
 *** Dice Similarity (Intersection Weighting) :noexport:
 Twice the intersection divided by the sum of the set sizes.
@@ -125,88 +115,143 @@ Similar to Jaccard but gives more credit to the shared courses. It is less sensi
 
 *** Kulczynski Similarity (Mutual Resemblance)
 
-# Reflects the average confidence that a student from one major would "fit" in the other. It is very robust when comparing a very large major to a small, specialized one.
-
-There is a large imbalance between the representation of the major domains in the data. The large engineering programs have significantly more enrollment data simply because more students have been through those curricula. This metric extends the Jaccard index to be slightly more robust to this issue by considering the average overlap between each set individually.
+There is a large imbalance in program representation in the data: large engineering programs have significantly more enrollment data simply because more students have been through those curricula. The Kulczynski metric [cite:@kulczynski1927pflanzenassoziationen] addresses this by averaging the overlap proportions from each program's perspective individually, making it more robust when comparing a very large program to a small, specialized one. It answers: /On average, how well would a student from one program fit in the other?/
 
 $$\text{Kulczynski}(A, B) = \frac{1}{2} \left( \frac{|A \cap B|}{|A|} + \frac{|A \cap B|}{|B|} \right)$$
 
+** Relationship Taxonomy
+
+The combination of these metrics defines three relationship types, summarized in Table [[tab:taxonomy]]. Each type is characterized by a distinct metric signature that a single metric alone cannot identify.
+
+#+CAPTION: Metric signatures for three curricular relationship types. High/Low are relative to other pairs within the same domain.
+#+LABEL: tab:taxonomy
+#+ATTR_LATEX: :align lccccl
+| Type        | Jaccard | TF-IDF | Overlap | PMI  | Example                |
+|-------------+---------+--------+---------+------+------------------------|
+| Nested      | Low     | Low    | High    | Var. | IT \subset CS          |
+| Parallel    | Med     | Low    | Med     | Low  | EE \parallel Civil Eng |
+| Convergent  | High    | High   | High    | High | Aero \approx Ind Eng   |
+
 * Preliminary Results
 
-The application of multi-dimensional similarity metrics reveals nuanced relationships between curricula that were previously undetected by the Jaccard indices. By examining the Computing, Engineering, and broader STEM domains, we identify distinct types of curricular overlap. We would like to advise the reader not to ascribe the specific values of the percentage overlaps as the primary point of value in these visualizations. Rather, the relative differences between domains within the same metric and the dendrogram clustering give better insight to the data.
+The application of multiple similarity metrics reveals relationships between curricula that a single metric cannot distinguish. By examining Engineering, Science, Computing, and broader STEM domains, we identify distinct types of curricular overlap. We note that the specific percentage values are less important than the relative differences between domain pairs within the same metric and the dendrogram clustering patterns.
+
+# PRIORITY 1: Aerospace-Industrial is the flagship result of the paper.
+# It is the single strongest argument that multi-metric analysis reveals
+# something a naive departmental view would miss. Two programs that no one
+# groups together administratively turn out to be the most similar pair in
+# all of engineering on EVERY metric. This should be the result the reader
+# remembers. Lead with engineering because this finding lives here.
 
 ** Engineering
 
-Engineering curricula is a highly applicable space for the term frequence-inverse document frequency because of the high number of shared courses across many domains. Figure 2 shows this TF-IDF metric applied to the engineering majors. While Jaccard indices between engineering disciplines are generally high due to shared mathematics and physics prerequisites (e.g., Electrical Engineering and Computer Engineering share ~33% Jaccard similarity), the TF-IDF metric separates those generic relationships from specific ones. The high TF-IDF similarity between computing and electrical engineering shows that these curricula are closely related even in terms of other engineering programs. This could be caused by the presence of merged "Electrical and Computing Engineering" departments at the sampled universities, but demonstrates the analysis' capability to detect these relationships. This high overlap warrants further investigation into the specific curricular structures of these programs at MIDFIELD institutions.
+TF-IDF analysis is particularly informative for engineering curricula because the many courses shared across sub-disciplines can inflate simpler metrics; TF-IDF downweights these ubiquitous courses to isolate specialized content. Figure [[fig:engineering_heatmap]] shows the TF-IDF metric applied to the top engineering majors by enrollment. While Jaccard indices between engineering disciplines are generally high due to shared mathematics and physics prerequisites (e.g., Electrical Engineering and Computer Engineering share ~33% Jaccard similarity), the TF-IDF metric separates those generic relationships from specific ones. The high TF-IDF similarity between computing-related and electrical engineering programs indicates that these curricula share specialized technical content beyond the common engineering core. Several MIDFIELD institutions house merged "Electrical and Computer Engineering" departments, and the analysis detects this structural relationship.
 
 #+ATTR_LATEX: :width 0.5\columnwidth
 #+CAPTION: TF-IDF Similarity in Engineering Degrees
 #+LABEL: fig:engineering_heatmap
 [[file:heatmap_engineering_top10_tfidf.png]]
 
-Notably, the overall TF-IDF similarity between engineering programs is typically very low, around ~7%. This indicates that the specialized classes that these programs distinguish themselves through are not an exceptionally large component of their overall programs, and that the general engineering model of a set base of courses supports the interdisciplinary motivations of this work. In addition to the Jaccard indicies presented in the text, we would also like to present the Kulczynski metric for engineering programs to confirm the TF-IDF metric's ability to pinpoint the most correlated engineering fields (electrical and computer).
+# The median ~3% TF-IDF across engineering sets the baseline that makes the
+# Aero-Industrial outlier (~45%, nearly 5x the next pair) so dramatic.
+# Present the baseline first so the reader has context for the surprise.
+The overall TF-IDF similarity between engineering programs is typically low (median ~3%), indicating that the specialized courses distinguishing each program constitute a small fraction of the overall curriculum. The general engineering model---a shared base of courses across sub-disciplines---is the dominant pattern, which supports the parallel characterization.
+
+The most striking result is the similarity between Aerospace Engineering and Industrial Engineering. This pair produces the highest or near-highest score on every metric: TF-IDF (~45%), Jaccard (~47%), Kulczynski (~66%), and Overlap (~79%). The TF-IDF score is more than four times higher than the next strongest engineering pair, indicating that Aerospace and Industrial Engineering share a substantial core of specialized courses that do not appear broadly across other engineering fields. The specific shared content likely includes areas common to both programs' accreditation requirements [cite:@abet2025criteria], such as systems-level analysis and applied statistics, though identifying the individual courses driving this similarity is a target of future work. The Kulczynski metric (Figure [[fig:engineering_kul]]) further confirms this: the Aerospace-Industrial pairing is the strongest in the engineering group, while most other engineering programs show moderate mutual resemblance consistent with the shared general engineering core.
 
 #+ATTR_LATEX: :width 0.5\columnwidth
-#+CAPTION: TF-IDF Similarity in Engineering Degrees
+#+CAPTION: Kulczynski Similarity in Engineering Degrees
 #+LABEL: fig:engineering_kul
 [[file:heatmap_engineering_top10_kulczynski.png]]
 
 
-** Computing
-In the computing domain (see Figure 1), the multi-metric analysis highlights significant structural differences between related majors. For example, the relationship between Computer Science (CS) and Computer Engineering (CompE) exhibits a moderate Jaccard index (~25%), indicating a notable but not overwhelming overlap in total course load. However, the Overlap Coefficient for this pair spikes to ~52%. This disparity suggests a nested relationship where the core curriculum of one discipline (likely CompE's software requirements) is heavily contained within the other, despite CS having a broader range of electives that dilutes the Jaccard score.
-
-#+ATTR_LATEX: :width 0.5\columnwidth
-#+CAPTION: Heatmap of Overlap Coefficients in Computing Degrees
-#+LABEL: fig:computing_heatmap
-[[file:heatmap_computing_top10_overlap.png]]
-
-Furthermore, the TF-IDF score for the CS-CompE pair (~29%) remains high relative to other pairings, confirming that the shared courses are not merely general education requirements but are specific, high-value technical courses central to the identity of both majors. In contrast, Information Technology shares a very high overlap (~80% Overlap Coefficient) with CS but a much lower Jaccard score (~8.5%), suggesting that IT curricula may function as a specialized subset of CS with a highly distinct set of non-CS requirements.
+# PRIORITY 2: Animal Sciences cluster is the flagship science result.
+# Animal Sciences (CIP 01) clusters with Biochemistry and Animal Biology
+# (both CIP 26) rather than with the broader Biological Sciences program.
+# The strongest PMI pair is Animal Sci-Biochemistry (~23%), followed by
+# Animal Sci-Animal Biology (~20%) and Biochemistry-Animal Biology (~18%).
+# This cross-CIP-family cluster demonstrates that enrollment data surfaces
+# relationships invisible to departmental taxonomy. Also interesting:
+# Mathematics-Chemistry TF-IDF (~49%) is the strongest specialized pair
+# in the sciences, and Math acts as a generalist connector across fields.
 
 ** Sciences
 
-The sciences provide an excellent data space to detect when a student decides to take an elective course that is outside of the expected coursework. The immense variation between the science fields contrasts the engineering structure, and so is well represented by the PMI index. In figure, we can see a cluster of related majors between environmental studies and physiology, indicating that these majors are already implementing a higher than typical structure for course collaboration. The high connection between math and physics is expected due to the high amount of double majors in these fields, but their disconnection from the other science branches indicates that these majors are not currently being taken advantage of for collaboration. This implies that these programs are a prime target for the other sciences to seek to build collaboration that is not present in the data.
+The science disciplines provide a useful contrast to engineering's shared-core structure. The immense variation between science fields means that cross-departmental enrollment is more likely to reflect elective choices rather than shared requirements. The PMI metric is well suited here because it identifies course-major pairings that occur more often than chance would predict. In Figure [[fig:science_pmi]], the strongest cluster connects Animal Sciences (CIP 01, Agriculture), Biochemistry, and Animal Biology, with the Animal Sciences-Biochemistry pair producing the highest PMI in the entire science matrix (~23%). This is followed by Animal Sciences-Animal Biology (~20%) and Biochemistry-Animal Biology (~18%). This triangle of programs shares statistically surprising co-enrollment that crosses CIP family boundaries: Animal Sciences is classified under Agriculture (CIP 01), while Biochemistry and Animal Biology fall under Biological Sciences (CIP 26). The clustering suggests that students in these programs take specialized courses in each other's departments at rates well above what chance would predict.
+
+Mathematics acts as a generalist connector, with moderate PMI values across many science programs---its strongest bonds are with Chemistry (~11%) and Interdisciplinary Studies (~10%). The Mathematics-Chemistry relationship is particularly notable: their TF-IDF similarity (~49%, Figure [[fig:science_tfidf]]) is the highest specialized-content pair in the entire science matrix, indicating that these programs share identity-defining coursework beyond common prerequisites. Biological Sciences, despite being the largest science program by enrollment, shows relatively weak PMI connections to most other fields (strongest: Physiology at ~9%), suggesting that its broad curriculum does not generate the statistically surprising co-enrollment patterns that smaller, more focused programs produce.
 
 #+ATTR_LATEX: :width 0.5\columnwidth
 #+CAPTION: PMI Similarity in Science Degrees
 #+LABEL: fig:science_pmi
 [[file:heatmap_sciences_top10_pmi.png]]
 
+#+ATTR_LATEX: :width 0.5\columnwidth
+#+CAPTION: TF-IDF Similarity in Science Degrees
+#+LABEL: fig:science_tfidf
+[[file:heatmap_sciences_top10_tfidf.png]]
+
+# PRIORITY 3: IT-CS is the cleanest nested example.
+# 80% Overlap with 8.5% Jaccard is the most extreme divergence between
+# these two metrics anywhere in the data. It is a textbook demonstration
+# of why a single metric is insufficient: Jaccard says IT and CS are barely
+# related, Overlap says IT is almost entirely contained within CS.
+# The CS-CompE pair is also useful but more expected; lead the paragraph
+# with it for context but make the IT-CS contrast the payoff.
+
+** Computing
+
+In the computing domain (Figure [[fig:computing_heatmap]]), the multi-metric analysis highlights structural differences between related majors. The relationship between Computer Science (CS) and Computer Engineering (CompE) exhibits a moderate Jaccard index (~25%) but a notably higher Overlap Coefficient (~52%), indicating that CompE's coursework is partially nested within the CS curriculum even though CS has a broader elective set that dilutes the Jaccard score. The TF-IDF score for this pair (~29%) is also among the highest computing pairings, confirming that the shared courses are specific technical courses central to the identity of both programs rather than general education requirements. CS and CompE thus exhibit a mix of nested and convergent characteristics.
+
+#+ATTR_LATEX: :width 0.5\columnwidth
+#+CAPTION: Heatmap of Overlap Coefficients in Computing Degrees
+#+LABEL: fig:computing_heatmap
+[[file:heatmap_computing_top10_overlap.png]]
+
+The cleanest nested relationship in the computing domain is between Information Technology and Computer Science. IT shares a very high Overlap Coefficient (~80%) with CS but a much lower Jaccard score (~8.5%)---the largest divergence between these two metrics in the entire dataset. Nearly all IT coursework overlaps with CS, but IT students also take a distinct set of courses (e.g., networking, systems administration) that CS students largely do not. A single-metric analysis using only Jaccard would classify IT and CS as barely related; the Overlap Coefficient reveals that IT functions as a specialized subset of CS.
+
+# PRIORITY 4: Physics-MechEng nested (65% Overlap vs 20% Jaccard).
+# Less surprising than the above findings---most physicists would guess
+# this---but the 3x ratio between Overlap and Jaccard is a clean
+# illustration of the nested pattern at the cross-domain STEM level.
+# Math as a bridge is expected and confirmatory, not novel; don't dwell on it.
+
 ** STEM Overall
 
-Broadening the scope to interdisciplinary STEM fields (see Figure 3), Mathematics as expected emerges as a central bridge. The Jaccard index shows Mathematics sharing significant curriculum with Mechanical Engineering (~36%), Physics (~36%), and Computer Science (~21%).
+Broadening the scope to representative STEM fields (Figure [[fig:stem_heatmap]]), Mathematics emerges as a central bridge as expected. The Jaccard index shows Mathematics sharing significant coursework with Mechanical Engineering (~36%), Physics (~23%), and Computer Science (~21%).
 
 #+ATTR_LATEX: :width 0.5\columnwidth
 #+CAPTION: Jaccard Similarity in Interdisciplinary STEM Degrees
 #+LABEL: fig:stem_heatmap
 [[file:heatmap_interdisciplinary_top10_jaccard.png]]
 
-Comparing Physics and Engineering, we see that Physics is more curricularly similar to Mechanical Engineering (~20% Jaccard) than to Computer Science (~9% Jaccard). However, the Overlap Coefficient between Physics and Mechanical Engineering (~45%) is notably higher, suggesting that a significant portion of a Physics major's coursework is implicitly required for or taken by Mechanical Engineers, likely in the form of foundational physical science requirements.
+#+ATTR_LATEX: :width 0.5\columnwidth
+#+CAPTION: Overlap Coefficient in Interdisciplinary STEM Degrees
+#+LABEL: fig:stem_overlap
+[[file:heatmap_interdisciplinary_top10_overlap.png]]
+
+Physics is more curricularly similar to Mechanical Engineering (~20% Jaccard) than to Computer Science (~9% Jaccard). Comparing Figures [[fig:stem_heatmap]] and [[fig:stem_overlap]] illustrates the nested pattern: the Overlap Coefficient between Physics and Mechanical Engineering (~65%) is notably higher than the Jaccard score, indicating a nested dynamic: a large portion of a Physics major's coursework---particularly the foundational physical science and mathematics sequences---is required for or commonly taken by Mechanical Engineering students.
 
 * Discussion
 
-The shift from a single similarity metric (Jaccard) to a vectorized approach allows for a significantly more detailed analysis of the relationships between STEM domains. This set of metrics has been selected to account for observed features in the data set. For example, the (perhaps naively) conceptual similarity between computing majors and the general engineering curriculum design trend. 
+The shift from a single similarity metric to a multi-metric vectorized approach enables a more detailed characterization of relationships between STEM domains. Each metric in the suite addresses a specific analytical need. The Jaccard index establishes baseline curricular width. The Overlap Coefficient identifies nested relationships, revealing when one program's coursework is largely contained within another. TF-IDF Cosine filters out generic prerequisites and isolates the specialized content that defines a program's identity. PMI identifies statistically surprising co-enrollment bonds---courses that students in one program take in another at rates that exceed what chance would predict. Kulczynski averages the overlap proportion from each program's perspective, making it robust when comparing programs of very different sizes. When multiple metrics are high simultaneously, a convergent relationship is indicated: programs that share both general and specialized content at levels suggesting deep curricular alignment.
 
-Overlap Coefficient identifies hierarchical or subset relationships, crucial for understanding if one major is effectively a specialized track of another. TF-IDF acts as a filter for signature courses, revealing if two majors share unique, specialized content or just generic prerequisites. 
+Comparing across domains, the dominant relationship type varies by STEM area. Engineering is characterized primarily by parallel relationships: the shared general engineering core produces moderate Jaccard and Kulczynski scores across most sub-disciplines, while TF-IDF scores are very low (median ~3%), indicating that specialized content diverges sharply. The Aerospace-Industrial convergent pairing is a notable exception. Computing, by contrast, exhibits a mix of nested and convergent patterns, reflecting the field's branching structure where programs like IT and Software Engineering are specialized subsets of CS. The sciences show the weakest overall inter-program connections but produce the most surprising cross-CIP-family clusters, such as the Animal Sciences-Biochemistry bond that bridges Agriculture and Biological Sciences. These structural differences suggest that interdisciplinary initiatives should be tailored to the domain: engineering benefits from identifying convergent pairs within its parallel structure, while computing benefits from recognizing the nested dependencies among its sub-fields.
 
-PMI highlights "surprising" connections, identifying courses that are statistically unlikely to be taken unless a student is in a specific pair of majors. Applying this to the science curricula identified when students would take a potentially unlikely course in a new domain. This in particular aligns with our work's goal of identifying interdisciplinary collaboration through student enrollment choices.
+The combined application of these metrics to the MIDFIELD data produces actionable distinctions for curriculum designers at each relationship type. For *nested* relationships (e.g., IT within CS), academic advisors can guide students in the smaller program toward the broader parent field's electives, and departments can identify courses in the larger program that serve as de facto requirements for the smaller one. For *parallel* relationships (e.g., most engineering sub-disciplines), collaboration should focus on coordinating shared prerequisite sections across departments to ensure consistent preparation. For *convergent* relationships (e.g., Aerospace-Industrial Engineering), the deep curricular alignment suggests concrete opportunities for cross-listed courses, interdisciplinary certificates, or dual-degree pathways that their departmental separation might otherwise obscure.
 
-For curriculum designers, this granularity is vital. A high Jaccard but low TF-IDF score suggests collaboration should focus on standardizing prerequisites (e.g., Calculus sequences). A high TF-IDF score suggests potential for specialized interdisciplinary tracks or certificates (e.g., a dual-major in Aero/Industrial systems).
+** Limitations
+
+Our analysis measures curricular overlap through student enrollment patterns, which is a necessary but not sufficient indicator of interdisciplinary engagement. Course enrollment reflects a combination of student interest, degree requirements, prerequisite chains, scheduling convenience, and institutional policies. We cannot fully disaggregate these factors in the current analysis. Consequently, our results identify where programs share common ground in student course-taking behavior, but should not be interpreted as direct evidence of interdisciplinary knowledge integration [cite:@klein1990interdisciplinarity]. Future work incorporating course-level requirement data from institutional catalogs could help isolate elective choices from required overlap.
+
+Additionally, our analysis aggregates data across eighteen universities and over two decades (2000--present). Curricula change over time, and institutional contexts vary: a high similarity score for a given pair could be driven disproportionately by a few large institutions or by older curricula that have since diverged. We cannot currently distinguish between a relationship that holds universally and one that is an artifact of a specific institution's departmental structure. Disaggregating results by institution and time period is a priority for future work.
 
 * Conclusion & Future Directions
 
-This work demonstrates the existing interdisciplinarity collaborations as they are expressed through student agency. In addition to the experts in the field identifying the KSAs that are needed for our big problems, the students themselves can be seen as betting on their futures with their education. By analyzing student enrollment data through various similarity metrics, we are trying to interpret this collective expression of will and use it to better understand how we can support our students on their academic journeys.
+This work demonstrates how existing curricular overlap between STEM programs can be characterized through student enrollment patterns. By applying multiple similarity metrics to the MIDFIELD dataset, we distinguish between parallel programs that share a broad common base but diverge in specialization, nested programs where one is a specialized subset of another, and convergent programs that share both general and specialized content at high levels. These distinctions move beyond what a single metric can reveal and provide actionable information for curriculum designers at multiple institutional levels.
 
-Future work will focus on:
+Future work will focus on: (1) disaggregating required coursework from elective enrollment to isolate student choice from degree structure; (2) applying these metrics across time windows to detect whether programs are becoming more or less similar over time (e.g., whether Biology is becoming more computational); (3) validating detected relationships against known interdisciplinary programs and expert assessments at MIDFIELD institutions; and (4) analyzing whether these patterns hold across all universities or if specific institutions have unique interdisciplinary characteristics.
 
-Comprehensive interpretation of courses and their contributions to the metrics to supply specific course collaboration recommendations. Applying these metrics across time windows to detect if majors are converging or diverging (e.g., is Biology becoming more computational over time?). Analyzing if these patterns hold across all universities or if specific institutions have unique interdisciplinary characteristics. Developing interactive tools for administrators to explore these vectors dynamically.
+* References
 
-* References :noexport:
-[1] S. M. Lord et al., "Midfield: A resource for longitudinal student record research," IEEE Transactions on Education, vol. 65, no. 3, pp. 245-256, 2022.
-
-[2] J. T. Klein, Interdisciplinarity: History, theory, and practice. Wayne state university press, 1990.
-
-[3] K. Marquardt, I. Wagner, and L. Happe, "Engaging girls in computer science: Do single-gender interdisciplinary classes help?," in 2023 IEEE/ACM 45th International Conference on Software Engineering.
-
-[4] P. O. Franco et al., "Enhancing undergraduate education and curriculum through an interdisciplinary and quantitative initiative to broaden participation in big data," in Proceedings of the 18th LACCEI International Multi-Conference, 2020.
-
-[5] P. J. Denning and M. Tedre, Computational thinking. MIT Press, 2019.
+#+print_bibliography:
