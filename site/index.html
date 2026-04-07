@@ -507,8 +507,11 @@
     <div class="drawer-section-title">Metric</div>
     <div id="metric-chips"></div>
 
-    <div class="drawer-section-title">Palette</div>
-    <div id="palette-toggle"></div>
+    <div class="drawer-section-title">Options</div>
+    <div id="options-row" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div id="palette-toggle" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      <button id="dendro-btn" class="metric-chip">Dendrograms</button>
+    </div>
 
     <div class="drawer-section-title">Majors</div>
     <div id="quick-select"></div>
@@ -609,6 +612,7 @@ const PALETTES = {
     gradient: 'linear-gradient(to right, rgb(68,1,84), rgb(49,104,142), rgb(53,183,121), rgb(253,231,37))' }
 };
 let currentPalette = 'orangepurple';
+let showDendrograms = false;
 
 // Split a name into two lines at the space/slash closest to the middle
 function twoLineHTML(name) {
@@ -676,6 +680,7 @@ const $drawerOverlay = document.getElementById('drawer-overlay');
 const $metricChips = document.getElementById('metric-chips');
 const $paletteToggle = document.getElementById('palette-toggle');
 const $legendBar = document.getElementById('legend-bar');
+const $dendroBtn = document.getElementById('dendro-btn');
 const $quickSelect = document.getElementById('quick-select');
 const $majorToggles = document.getElementById('major-toggles');
 const $domainPills = document.querySelectorAll('.domain-pill');
@@ -693,6 +698,11 @@ function setDrawer(expanded) {
 function setupDrawer() {
   $drawerHandle.addEventListener('click', () => setDrawer(!drawerExpanded));
   $drawerOverlay.addEventListener('click', () => setDrawer(false));
+  $dendroBtn.addEventListener('click', () => {
+    showDendrograms = !showDendrograms;
+    $dendroBtn.classList.toggle('active', showDendrograms);
+    renderHeatmap();
+  });
 }
 
 // ─── Detail panel ─────────────────────────────────────────────────────────────
@@ -825,9 +835,18 @@ function renderHeatmap() {
   const data = state.data[state.domain];
   if (!data) return;
 
-  const active = state.activeMajors;
+  let active = state.activeMajors;
   const n = active.length;
   if (n < 2) return;
+
+  // Reorder by dendrogram leaf order when enabled
+  const dendro = data.dendrogram;
+  if (showDendrograms && dendro) {
+    const leafOrder = dendro.leaf_order;
+    // Filter leaf order to only include active majors, preserving dendrogram order
+    const activeSet = new Set(active);
+    active = leafOrder.filter(i => activeSet.has(i));
+  }
 
   const matrix = data.matrices[state.metric];
 
@@ -913,6 +932,81 @@ function renderHeatmap() {
   }
 
   $heatmapWrapper.appendChild(grid);
+
+  // Render dendrograms if enabled
+  if (showDendrograms && dendro && active.length === dendro.leaf_order.length) {
+    const dendroWidth = 60;
+    const gap = 2; // matches grid gap
+    const totalGridH = active.length * (cellSize + gap) - gap;
+
+    // Build mapping from full leaf positions to pixel positions
+    // scipy dendrogram icoord uses positions 5, 15, 25... (10*i + 5)
+    // We need to map those to our cell centers
+    const leafCount = dendro.leaves.length;
+
+    // Top dendrogram (horizontal, above columns)
+    const topSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    topSvg.style.width = (n * (cellSize + gap) - gap) + 'px';
+    topSvg.style.height = dendroWidth + 'px';
+    topSvg.style.marginLeft = labelWidth + 'px';
+    topSvg.style.display = 'block';
+
+    const maxD = Math.max(...dendro.dcoord.flat());
+    for (let s = 0; s < dendro.icoord.length; s++) {
+      const ix = dendro.icoord[s];
+      const iy = dendro.dcoord[s];
+      const points = [];
+      for (let p = 0; p < 4; p++) {
+        const x = (ix[p] - 5) / (10 * (leafCount - 1)) * (n * (cellSize + gap) - gap - cellSize) + cellSize / 2;
+        const y = dendroWidth - (iy[p] / maxD) * (dendroWidth - 4);
+        points.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+      }
+      const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      polyline.setAttribute('points', points.join(' '));
+      polyline.setAttribute('fill', 'none');
+      polyline.setAttribute('stroke', 'var(--clemson-purple)');
+      polyline.setAttribute('stroke-width', '1.5');
+      topSvg.appendChild(polyline);
+    }
+    $heatmapWrapper.insertBefore(topSvg, grid);
+
+    // Right dendrogram (vertical, beside rows)
+    const rightSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    rightSvg.style.width = dendroWidth + 'px';
+    rightSvg.style.height = totalGridH + 'px';
+    rightSvg.style.display = 'inline-block';
+    rightSvg.style.verticalAlign = 'bottom';
+    rightSvg.style.marginBottom = '0';
+
+    for (let s = 0; s < dendro.icoord.length; s++) {
+      const ix = dendro.icoord[s];
+      const iy = dendro.dcoord[s];
+      const points = [];
+      for (let p = 0; p < 4; p++) {
+        const y = (ix[p] - 5) / (10 * (leafCount - 1)) * (totalGridH - cellSize) + cellSize / 2;
+        const x = (iy[p] / maxD) * (dendroWidth - 4);
+        points.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+      }
+      const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      polyline.setAttribute('points', points.join(' '));
+      polyline.setAttribute('fill', 'none');
+      polyline.setAttribute('stroke', 'var(--clemson-purple)');
+      polyline.setAttribute('stroke-width', '1.5');
+      rightSvg.appendChild(polyline);
+    }
+
+    // Wrap grid and right dendro side by side
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.alignItems = 'flex-end';
+    row.style.gap = '4px';
+    $heatmapWrapper.innerHTML = '';
+    $heatmapWrapper.appendChild(topSvg);
+    row.appendChild(grid);
+    row.appendChild(rightSvg);
+    $heatmapWrapper.appendChild(row);
+  }
+
   $heatmapContainer.style.display = 'block';
   $legend.style.display = 'flex';
 }
