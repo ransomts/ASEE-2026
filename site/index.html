@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>STEM Curriculum Explorer</title>
+<meta name="description" content="Interactive explorer for curricular overlap between STEM programs using the MIDFIELD dataset. ASEE 2026.">
+<meta property="og:title" content="STEM Curriculum Explorer">
+<meta property="og:description" content="Explore curricular overlap between STEM programs using the MIDFIELD dataset.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ransomts.github.io/ASEE-2026/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="STEM Curriculum Explorer">
+<meta name="twitter:description" content="Interactive STEM curricular similarity explorer — ASEE 2026">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23F56600'/></svg>">
 <style>
   :root {
     --clemson-orange: #F56600;
@@ -39,11 +48,21 @@
     gap: 10px;
   }
 
+  #header-title {
+    flex: 1;
+  }
+
   #header h1 {
     font-size: 20px;
     font-weight: 700;
     color: var(--clemson-purple);
-    flex: 1;
+  }
+
+  .header-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-top: 2px;
   }
 
   .header-dot {
@@ -160,6 +179,14 @@
   @keyframes slideUp {
     from { transform: translateY(30px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
+  }
+
+  #detail-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 20px 0;
+    font-size: 14px;
+    display: none;
   }
 
   #detail-close {
@@ -467,6 +494,54 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ══════════════════════════════════════════════════════════════════════════
+     DARK MODE
+     ══════════════════════════════════════════════════════════════════════════ */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a2e;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --surface: #16213e;
+      --border: #30363d;
+      --detail-bg: #1e1533;
+    }
+    #header {
+      background: #16213e;
+      border-bottom-color: var(--clemson-orange);
+    }
+    .domain-pill {
+      border-color: var(--clemson-purple);
+      color: #ccc;
+    }
+    .domain-pill.active {
+      color: #fff;
+    }
+    #metric-indicator {
+      background: var(--surface);
+      border-bottom-color: var(--border);
+    }
+    .metric-chip, .quick-btn, .major-toggle {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
+    #detail-panel {
+      background: var(--detail-bg);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+    }
+    #drawer {
+      background: var(--surface);
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.3);
+    }
+    .metric-bar-track {
+      background: var(--border);
+    }
+    #detail-classification {
+      background: #2a1f3d;
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
      DESKTOP LAYOUT (>= 768px): sidebar instead of drawer
      ══════════════════════════════════════════════════════════════════════════ */
   @media (min-width: 768px) {
@@ -564,6 +639,12 @@
       font-size: 13px;
       padding: 5px 12px;
     }
+
+    .header-subtitle {
+      font-size: 13px;
+    }
+
+    #detail-panel { display: block !important; }
   }
 </style>
 </head>
@@ -572,7 +653,10 @@
 <!-- Header -->
 <header id="header">
   <div class="header-dot dot-orange"></div>
-  <h1>STEM Curriculum Explorer</h1>
+  <div id="header-title">
+    <h1>STEM Curriculum Explorer</h1>
+    <p class="header-subtitle">Explore curricular overlap between STEM programs using the MIDFIELD dataset</p>
+  </div>
   <div class="header-dot dot-purple"></div>
 </header>
 
@@ -606,6 +690,7 @@
 
 <!-- Detail panel -->
 <div id="detail-panel" role="dialog" aria-modal="true" aria-label="Cell details">
+  <div id="detail-empty">Tap a cell to compare two programs</div>
   <button id="detail-close" aria-label="Close details">&times;</button>
   <div id="detail-title"></div>
   <div id="detail-bars"></div>
@@ -769,6 +854,16 @@ const METRIC_NAMES = {
 
 const METRIC_KEYS = Object.keys(METRIC_NAMES);
 
+const METRIC_DESCRIPTIONS = {
+  jaccard: 'Curricular width — what fraction of combined courses are shared',
+  tfidf: 'Specialized identity — similarity weighted by course distinctiveness',
+  overlap: 'Subset relations — how much of the smaller program appears in the larger',
+  pmi: 'Signature bonds — courses that co-occur more than expected by chance',
+  max_scaled: 'Core structure — similarity using enrollment-weighted course profiles',
+  dice: 'Balanced overlap — intersection relative to average program size',
+  kulczynski: 'Mutual resemblance — average proportion of shared courses'
+};
+
 const DOMAIN_NAMES = {
   interdisciplinary: 'Cross-Domain',
   computing: 'Computing',
@@ -830,7 +925,24 @@ function setupDrawer() {
     showDendrograms = !showDendrograms;
     $dendroBtn.classList.toggle('active', showDendrograms);
     renderHeatmap();
+    updateHash();
   });
+
+  // Share View button
+  const shareBtn = document.createElement('button');
+  shareBtn.className = 'metric-chip';
+  shareBtn.textContent = 'Share View';
+  shareBtn.addEventListener('click', () => {
+    updateHash();
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      shareBtn.textContent = 'Link Copied!';
+      setTimeout(() => { shareBtn.textContent = 'Share View'; }, 2000);
+    }).catch(() => {
+      // Fallback: select and prompt
+      prompt('Copy this URL:', window.location.href);
+    });
+  });
+  document.getElementById('options-row').appendChild(shareBtn);
 }
 
 // ─── Detail panel ─────────────────────────────────────────────────────────────
@@ -943,6 +1055,7 @@ function showDetail(row, col) {
     `;
   }
 
+  document.getElementById('detail-empty').style.display = 'none';
   $detailPanel.classList.add('visible');
   // If drawer is expanded, collapse it so panel is visible
   if (drawerExpanded) setDrawer(false);
@@ -952,6 +1065,10 @@ function hideDetail() {
   $detailPanel.classList.remove('visible');
   document.querySelectorAll('.hm-cell.selected').forEach(el => el.classList.remove('selected'));
   state.selectedCell = null;
+  if (isDesktop()) {
+    document.getElementById('detail-empty').style.display = 'block';
+    $detailPanel.classList.add('visible');
+  }
 }
 
 function setupDetail() {
@@ -961,9 +1078,15 @@ function setupDetail() {
   function positionDetailPanel() {
     if (isDesktop()) {
       detailSlot.appendChild($detailPanel);
+      // Show empty state on desktop when no cell selected
+      if (!state.selectedCell) {
+        document.getElementById('detail-empty').style.display = 'block';
+        $detailPanel.classList.add('visible');
+      }
     } else if ($detailPanel.parentNode !== document.body) {
       // Move back before drawer-overlay
       document.body.insertBefore($detailPanel, $drawerOverlay);
+      document.getElementById('detail-empty').style.display = 'none';
     }
   }
   positionDetailPanel();
@@ -1165,6 +1288,7 @@ function renderPaletteToggle() {
       $legendBar.style.background = PALETTES[key].gradient;
       renderPaletteToggle();
       renderHeatmap();
+      updateHash();
     });
     $paletteToggle.appendChild(btn);
   }
@@ -1176,11 +1300,13 @@ function renderMetricChips() {
     const btn = document.createElement('button');
     btn.className = 'metric-chip' + (key === state.metric ? ' active' : '');
     btn.textContent = METRIC_NAMES[key];
+    btn.title = METRIC_DESCRIPTIONS[key] || '';
     btn.addEventListener('click', () => {
       state.metric = key;
       $metricIndicatorName.textContent = METRIC_NAMES[key];
       renderMetricChips();
       renderHeatmap();
+      updateHash();
       // Update detail panel bars if open
       if (state.selectedCell) {
         showDetail(state.selectedCell.row, state.selectedCell.col);
@@ -1207,6 +1333,7 @@ function renderMajorToggles() {
       hideDetail();
       renderMajorToggles();
       renderHeatmap();
+      updateHash();
     });
     $quickSelect.appendChild(btn);
   }
@@ -1230,6 +1357,7 @@ function renderMajorToggles() {
     hideDetail();
     renderMajorToggles();
     renderHeatmap();
+    updateHash();
   });
   $quickSelect.appendChild(customBtn);
 
@@ -1243,6 +1371,7 @@ function renderMajorToggles() {
     hideDetail();
     renderMajorToggles();
     renderHeatmap();
+    updateHash();
   });
   $quickSelect.appendChild(noneBtn);
 
@@ -1268,13 +1397,14 @@ function renderMajorToggles() {
       hideDetail();
       renderMajorToggles();
       renderHeatmap();
+      updateHash();
     });
     $majorToggles.appendChild(btn);
   }
 }
 
 // ─── Domain switching ─────────────────────────────────────────────────────────
-async function switchDomain(domain) {
+async function switchDomain(domain, hashParams) {
   state.domain = domain;
   state.selectedCell = null;
   hideDetail();
@@ -1303,17 +1433,94 @@ async function switchDomain(domain) {
   state.labels = Object.entries(data.labels).map(([cip, name]) => ({ cip, name }));
   state.activeMajors = state.labels.map((_, i) => i);
 
+  // Apply hash params if provided
+  if (hashParams) {
+    if (hashParams.metric && METRIC_NAMES[hashParams.metric]) {
+      state.metric = hashParams.metric;
+    }
+    if (hashParams.palette && PALETTES[hashParams.palette]) {
+      currentPalette = hashParams.palette;
+      $legendBar.style.background = PALETTES[currentPalette].gradient;
+    }
+    if (hashParams.dendro !== undefined) {
+      showDendrograms = hashParams.dendro === '1';
+      $dendroBtn.classList.toggle('active', showDendrograms);
+    }
+    if (hashParams.n) {
+      const n = state.labels.length;
+      if (hashParams.n === 'all') {
+        state.activeMajors = state.labels.map((_, i) => i);
+      } else {
+        const count = parseInt(hashParams.n);
+        if (!isNaN(count) && count >= 2 && count <= n) {
+          state.activeMajors = Array.from({length: count}, (_, i) => i);
+        }
+      }
+    }
+  } else {
+    // Auto top-10 on mobile for large domains
+    if (!isDesktop() && state.labels.length > 10) {
+      state.activeMajors = Array.from({length: 10}, (_, i) => i);
+    }
+  }
+
   $loading.style.display = 'none';
+  $metricIndicatorName.textContent = METRIC_NAMES[state.metric];
 
   renderPaletteToggle();
   renderMetricChips();
   renderMajorToggles();
   renderHeatmap();
+  updateHash();
+}
+
+// ─── URL hash state ───────────────────────────────────────────────────────────
+function updateHash() {
+  const n = state.activeMajors.length;
+  const total = state.labels.length;
+  const nParam = n === total ? 'all' : String(n);
+  const params = [
+    `domain=${state.domain}`,
+    `metric=${state.metric}`,
+    `n=${nParam}`,
+    `palette=${currentPalette}`,
+    `dendro=${showDendrograms ? 1 : 0}`
+  ];
+  history.replaceState(null, '', '#' + params.join('&'));
+}
+
+function loadFromHash() {
+  const hash = location.hash.replace(/^#/, '');
+  if (!hash) return null;
+  const params = {};
+  for (const part of hash.split('&')) {
+    const [k, v] = part.split('=');
+    if (k && v !== undefined) params[k] = v;
+  }
+  return params;
 }
 
 // ─── Domain pill listeners ────────────────────────────────────────────────────
 $domainPills.forEach(pill => {
-  pill.addEventListener('click', () => switchDomain(pill.dataset.domain));
+  pill.addEventListener('click', () => switchDomain(pill.dataset.domain, null));
+});
+
+// ─── Keyboard navigation ──────────────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (!state.selectedCell) return;
+  const { row, col } = state.selectedCell;
+  const n = state.activeMajors.length;
+  let newRow = row, newCol = col;
+
+  if (e.key === 'ArrowUp') newRow = Math.max(0, row - 1);
+  else if (e.key === 'ArrowDown') newRow = Math.min(n - 1, row + 1);
+  else if (e.key === 'ArrowLeft') newCol = Math.max(0, col - 1);
+  else if (e.key === 'ArrowRight') newCol = Math.min(n - 1, col + 1);
+  else if (e.key === 'Escape') { hideDetail(); renderHeatmap(); return; }
+  else return;
+
+  e.preventDefault();
+  showDetail(newRow, newCol);
 });
 
 // ─── Re-render on resize ──────────────────────────────────────────────────────
@@ -1326,7 +1533,11 @@ window.addEventListener('resize', () => {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 setupDrawer();
 setupDetail();
-switchDomain('interdisciplinary');
+const _hashParams = loadFromHash();
+const _initDomain = (_hashParams && _hashParams.domain && DOMAIN_NAMES[_hashParams.domain])
+  ? _hashParams.domain
+  : 'interdisciplinary';
+switchDomain(_initDomain, _hashParams);
 </script>
 </body>
 </html>
