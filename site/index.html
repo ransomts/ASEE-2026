@@ -943,9 +943,9 @@ function setDrawer(expanded) {
 
 function setupThemeToggle() {
   const btn = document.getElementById('theme-toggle');
-  // Restore saved preference
+  // Restore saved preference (light is default, even if system prefers dark)
   const saved = localStorage.getItem('theme');
-  if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+  if (saved === 'dark') {
     document.body.setAttribute('data-theme', 'dark');
     btn.textContent = '\u2600'; // sun
   }
@@ -1102,6 +1102,7 @@ function showDetail(row, col) {
   }
 
   document.getElementById('detail-empty').style.display = 'none';
+  $detailClose.style.display = '';
   $detailPanel.classList.add('visible');
   // If drawer is expanded, collapse it so panel is visible
   if (drawerExpanded) setDrawer(false);
@@ -1113,6 +1114,7 @@ function hideDetail() {
   state.selectedCell = null;
   if (isDesktop()) {
     document.getElementById('detail-empty').style.display = 'block';
+    $detailClose.style.display = 'none';
     $detailPanel.classList.add('visible');
   }
 }
@@ -1127,6 +1129,7 @@ function setupDetail() {
       // Show empty state on desktop when no cell selected
       if (!state.selectedCell) {
         document.getElementById('detail-empty').style.display = 'block';
+        $detailClose.style.display = 'none';
         $detailPanel.classList.add('visible');
       }
     } else if ($detailPanel.parentNode !== document.body) {
