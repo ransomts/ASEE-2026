@@ -40,7 +40,7 @@
   }
 
   #header h1 {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--clemson-purple);
     flex: 1;
@@ -70,12 +70,12 @@
 
   .domain-pill {
     flex-shrink: 0;
-    padding: 6px 14px;
+    padding: 8px 16px;
     border-radius: 20px;
     border: 2px solid var(--clemson-purple);
     background: transparent;
     color: var(--clemson-purple);
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s, color 0.2s;
@@ -96,12 +96,14 @@
   /* Heatmap */
   #heatmap-container {
     overflow-x: auto;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
+    padding: 8px 12px;
   }
 
   #heatmap-wrapper {
     display: inline-block;
-    min-width: 100%;
+    min-width: min-content;
   }
 
   /* Color legend */
@@ -110,13 +112,13 @@
     align-items: center;
     gap: 8px;
     padding: 10px 8px 4px;
-    font-size: 11px;
+    font-size: 14px;
     color: var(--text-muted);
   }
 
   #legend-bar {
     flex: 1;
-    height: 12px;
+    height: 14px;
     border-radius: 6px;
     background: linear-gradient(to right,
       rgb(68,1,84), rgb(72,40,120), rgb(62,83,143), rgb(49,104,142),
@@ -164,7 +166,7 @@
   }
 
   #detail-title {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
     color: var(--clemson-purple);
     margin-bottom: 12px;
@@ -175,12 +177,12 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
 
   .metric-bar-label {
-    width: 82px;
-    font-size: 11px;
+    width: 90px;
+    font-size: 13px;
     color: var(--text-muted);
     flex-shrink: 0;
     text-align: right;
@@ -188,15 +190,15 @@
 
   .metric-bar-track {
     flex: 1;
-    height: 10px;
+    height: 14px;
     background: var(--border);
-    border-radius: 5px;
+    border-radius: 7px;
     overflow: hidden;
   }
 
   .metric-bar-fill {
     height: 100%;
-    border-radius: 5px;
+    border-radius: 7px;
     background: var(--clemson-purple);
     transition: width 0.3s ease;
   }
@@ -204,8 +206,8 @@
   .metric-bar-fill.highlighted { background: var(--clemson-orange); }
 
   .metric-bar-value {
-    width: 34px;
-    font-size: 11px;
+    width: 42px;
+    font-size: 13px;
     color: var(--text-muted);
     flex-shrink: 0;
   }
@@ -219,20 +221,20 @@
   }
 
   #detail-classification .class-label {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--clemson-purple);
     margin-bottom: 2px;
   }
 
   #detail-classification .class-desc {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text);
     margin-bottom: 4px;
   }
 
   #detail-classification .class-note {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--text-muted);
     font-style: italic;
   }
@@ -285,7 +287,7 @@
   }
 
   #drawer-handle-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -299,7 +301,7 @@
   }
 
   .drawer-section-title {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -315,12 +317,12 @@
   }
 
   .metric-chip {
-    padding: 5px 12px;
+    padding: 7px 14px;
     border-radius: 16px;
     border: 2px solid var(--border);
     background: var(--surface);
     color: var(--text);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s, color 0.2s, border-color 0.2s;
@@ -342,12 +344,12 @@
   }
 
   .quick-btn {
-    padding: 5px 12px;
+    padding: 7px 14px;
     border-radius: 16px;
     border: 2px solid var(--border);
     background: var(--surface);
     color: var(--text);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s, color 0.2s;
@@ -364,12 +366,12 @@
   }
 
   .major-toggle {
-    padding: 5px 10px;
-    border-radius: 12px;
+    padding: 6px 12px;
+    border-radius: 14px;
     border: 2px solid var(--border);
     background: var(--surface);
     color: var(--text);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s, color 0.2s, border-color 0.2s;
@@ -406,30 +408,28 @@
   }
 
   .hm-col-label {
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
     font-weight: 600;
     color: var(--text-muted);
+    line-height: 1.2;
     overflow: hidden;
-    white-space: nowrap;
-    transform: rotate(-45deg);
-    transform-origin: left bottom;
-    padding: 0;
-    line-height: 1.1;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-align: left;
+    padding: 2px 0;
+    white-space: pre-line;
   }
 
   .hm-row-label {
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: right;
+    padding-right: 6px;
+    line-height: 1.2;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    font-weight: 600;
-    color: var(--text-muted);
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    padding-right: 4px;
-    line-height: 1.1;
+    word-break: break-word;
   }
 
   .hm-corner { /* empty top-left corner */ }
@@ -575,6 +575,20 @@ const VIRIDIS = (function() {
   return lut;
 })();
 
+// Split a name into two lines at the space/slash closest to the middle
+function twoLineHTML(name) {
+  const spaces = [];
+  for (let i = 0; i < name.length; i++) {
+    if (name[i] === ' ' || name[i] === '/') spaces.push(i);
+  }
+  if (spaces.length > 0) {
+    const mid = name.length / 2;
+    const best = spaces.reduce((a, b) => Math.abs(a - mid) < Math.abs(b - mid) ? a : b);
+    return name.substring(0, best) + '<br>' + name.substring(best + 1);
+  }
+  return name;
+}
+
 function viridisColor(value) {
   // value: 0–100
   const idx = Math.round(Math.min(Math.max(value, 0), 100) * 2.55);
@@ -646,32 +660,47 @@ function setupDrawer() {
 }
 
 // ─── Detail panel ─────────────────────────────────────────────────────────────
-function classify(metrics) {
+function classify(metrics, nameA, nameB, aIdx, bIdx) {
   const j = metrics.jaccard || 0;
   const t = metrics.tfidf || 0;
   const o = metrics.overlap || 0;
   if (j >= 30 && t >= 20) {
     return {
       label: 'Convergent',
-      desc: 'These programs share a substantial core of common coursework across multiple metrics.',
-      note: 'Based on Jaccard > 30 and TF-IDF Cosine > 20.'
+      desc: 'These programs share substantial common coursework in both breadth and specialization.',
+      note: 'Based on Jaccard \u2265 30 and TF-IDF Cosine \u2265 20.'
     };
   } else if (o > 50 && j < 30) {
+    // Use course counts to determine nesting direction
+    const data = state.data[state.domain];
+    const counts = data.course_counts;
+    const cipA = state.labels[aIdx].cip;
+    const cipB = state.labels[bIdx].cip;
+    const countA = counts ? (counts[cipA] || 0) : 0;
+    const countB = counts ? (counts[cipB] || 0) : 0;
+    let desc;
+    if (countA && countB && countA !== countB) {
+      const smaller = countA < countB ? nameA : nameB;
+      const larger = countA < countB ? nameB : nameA;
+      desc = `${smaller}\u2019s coursework appears largely within ${larger}\u2019s broader curriculum (${Math.min(countA,countB).toLocaleString()} vs ${Math.max(countA,countB).toLocaleString()} unique courses).`;
+    } else {
+      desc = 'These programs have a subset relationship\u2014one program\u2019s coursework appears largely within the other\u2019s.';
+    }
     return {
       label: 'Nested',
-      desc: 'One program\'s curriculum is largely contained within the other\'s, suggesting a subset relationship.',
-      note: 'Based on Overlap > 50 and Jaccard < 30.'
+      desc: desc,
+      note: 'Based on Overlap > 50 and Jaccard < 30. Direction inferred from course catalog sizes.'
     };
   } else if (j >= 20 && j <= 50 && t < 20) {
     return {
       label: 'Parallel',
-      desc: 'These programs share some courses but diverge in emphasis and specialized content.',
-      note: 'Based on Jaccard 20–50 and TF-IDF Cosine < 20.'
+      desc: 'These programs share a common curricular base but diverge in their specialized content.',
+      note: 'Based on Jaccard 20\u201350 and TF-IDF Cosine < 20.'
     };
   } else {
     return {
       label: 'Weak / Distinct',
-      desc: 'These programs have limited curricular overlap; they serve largely distinct learning objectives.',
+      desc: 'These programs have limited curricular overlap and serve largely distinct learning objectives.',
       note: 'Low similarity values across all metrics.'
     };
   }
@@ -732,7 +761,7 @@ function showDetail(row, col) {
       <div class="class-desc">This is a self-comparison — all metrics are 100%.</div>
     `;
   } else {
-    const cls = classify(metricValues);
+    const cls = classify(metricValues, aName, bName, aIdx, bIdx);
     $detailClassification.innerHTML = `
       <div class="class-label">${cls.label}</div>
       <div class="class-desc">${cls.desc}</div>
@@ -768,24 +797,26 @@ function renderHeatmap() {
 
   // Determine sizing
   const containerWidth = ($heatmapContainer.clientWidth || window.innerWidth) - 16;
-  const labelWidth = 80;
+  // Use wider labels on wider screens, narrower on phones
+  const labelWidth = Math.min(220, Math.max(100, Math.floor(containerWidth * 0.25)));
   const available = containerWidth - labelWidth - (n - 1) * 2;
-  const cellSize = Math.max(16, Math.floor(available / n));
+  const cellSize = Math.min(50, Math.max(16, Math.floor(available / n)));
 
   // Font size based on count
   let fontSize;
-  if (n > 15) fontSize = '8px';
-  else if (n > 10) fontSize = '9px';
-  else fontSize = '10px';
+  if (n > 15) fontSize = '10px';
+  else if (n > 10) fontSize = '11px';
+  else fontSize = '13px';
 
-  const colLabelHeight = n > 15 ? 45 : 60; // space for -45deg rotated labels
+  // Vertical rotated labels, 2 lines — height based on half the longest label
+  const colLabelHeight = n > 15 ? 80 : 110;
 
   // Build grid: (n+1) cols × (n+1) rows
   // col 0: row labels (width=labelWidth), cols 1..n: cells (width=cellSize)
   // row 0: col labels (height=colLabelHeight), rows 1..n: data rows
 
   const gridCols = `${labelWidth}px ${Array(n).fill(`${cellSize}px`).join(' ')}`;
-  const gridRows = `${colLabelHeight}px ${Array(n).fill(`${cellSize}px`).join(' ')}`;
+  const gridRows = `minmax(${colLabelHeight}px, auto) ${Array(n).fill(`minmax(${cellSize}px, auto)`).join(' ')}`;
 
   $heatmapWrapper.innerHTML = '';
   const grid = document.createElement('div');
@@ -804,8 +835,9 @@ function renderHeatmap() {
     const label = document.createElement('div');
     label.className = 'hm-col-label';
     label.style.fontSize = fontSize;
-    label.style.width = cellSize + 'px';
-    label.textContent = state.labels[idx].name;
+    const name = state.labels[idx].name;
+    label.title = name;
+    label.innerHTML = twoLineHTML(name);
     grid.appendChild(label);
   }
 
@@ -817,8 +849,8 @@ function renderHeatmap() {
     const rowLabel = document.createElement('div');
     rowLabel.className = 'hm-row-label';
     rowLabel.style.fontSize = fontSize;
-    rowLabel.style.height = cellSize + 'px';
-    rowLabel.textContent = state.labels[rIdx].name;
+    rowLabel.title = state.labels[rIdx].name;
+    rowLabel.innerHTML = twoLineHTML(state.labels[rIdx].name);
     grid.appendChild(rowLabel);
 
     // Cells

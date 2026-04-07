@@ -506,7 +506,13 @@ cip_label_map <- sapply(valid_cips, function(x) {
   str_remove(lbl, "Bachelor of Science in ")
 }, simplify = FALSE)
 
-# 2. Bundle all data
+# 2. Course counts per CIP (unique courses taken by students in that major)
+course_counts <- sapply(valid_cips, function(x) {
+  s <- subset_sets[cip6 == x]$course_set
+  if (length(s) > 0) length(s[[1]]) else 0L
+}, simplify = FALSE)
+
+# 3. Bundle all data
 export_data <- list(
   metadata = list(
     mode = analysis_mode,
@@ -515,6 +521,7 @@ export_data <- list(
     description = "Pairwise similarity matrices for STEM curricula."
   ),
   labels = cip_label_map,
+  course_counts = course_counts,
   matrices = list(
     jaccard = sim_jac,
     tfidf = sim_tfidf,
@@ -526,7 +533,7 @@ export_data <- list(
   )
 )
 
-# 3. Generate dynamic filename and save
+# 4. Generate dynamic filename and save
 json_filename <- paste0("similarity_metrics_", analysis_mode, ".json")
 jsonlite::write_json(export_data, json_filename, pretty = TRUE, auto_unbox = TRUE)
 
@@ -776,14 +783,18 @@ plot_hm(sim_kul, "Kulczynski\n(Mutual Fit)", colorRampPalette(c("white", "#fff5f
 # --- EXPORT TO JSON ---
 
 # 1. Create a readable label map for the JSON consumer
-# This allows the JSON to keep concise keys (CIPs) but provides human names
 cip_label_map <- sapply(valid_cips, function(x) {
-  # Clean up the label similar to the plot function
   lbl <- get_smart_label(x)
   str_remove(lbl, "Bachelor of Science in ")
 }, simplify = FALSE)
 
-# 2. Bundle all data
+# 2. Course counts per CIP
+course_counts <- sapply(valid_cips, function(x) {
+  s <- subset_sets[cip6 == x]$course_set
+  if (length(s) > 0) length(s[[1]]) else 0L
+}, simplify = FALSE)
+
+# 3. Bundle all data
 export_data <- list(
   metadata = list(
     mode = analysis_mode,
@@ -792,6 +803,7 @@ export_data <- list(
     description = "Pairwise similarity matrices for STEM curricula."
   ),
   labels = cip_label_map,
+  course_counts = course_counts,
   matrices = list(
     jaccard = sim_jac,
     tfidf = sim_tfidf,
@@ -803,7 +815,7 @@ export_data <- list(
   )
 )
 
-# 3. Generate dynamic filename and save
+# 4. Generate dynamic filename and save
 json_filename <- paste0("similarity_metrics_", analysis_mode, "_top", n_top_limit, ".json")
 jsonlite::write_json(export_data, json_filename, pretty = TRUE, auto_unbox = TRUE)
 
