@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STEM Curriculum Explorer</title>
+<style>
+  :root {
+    --clemson-orange: #F56600;
+    --clemson-purple: #522D80;
+    --bg: #fefefe;
+    --text: #2d3436;
+    --text-muted: #636e72;
+    --surface: #f8f8f8;
+    --border: #e0e0e0;
+    --detail-bg: #f8f4fc;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  #header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 3px solid var(--clemson-orange);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--clemson-purple);
+    flex: 1;
+  }
+
+  .header-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-orange { background: var(--clemson-orange); }
+  .dot-purple { background: var(--clemson-purple); }
+
+  /* Domain pills */
+  #domain-bar {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #domain-bar::-webkit-scrollbar { display: none; }
+
+  .domain-pill {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 2px solid var(--clemson-purple);
+    background: transparent;
+    color: var(--clemson-purple);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .domain-pill.active {
+    background: var(--clemson-purple);
+    color: #fff;
+  }
+
+  /* Main content */
+  #main {
+    padding: 12px 8px;
+    padding-bottom: 100px;
+  }
+
+  /* Heatmap */
+  #heatmap-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #heatmap-wrapper {
+    display: inline-block;
+    min-width: 100%;
+  }
+
+  /* Color legend */
+  #legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 8px 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  #legend-bar {
+    flex: 1;
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(to right,
+      rgb(68,1,84), rgb(72,40,120), rgb(62,83,143), rgb(49,104,142),
+      rgb(38,130,142), rgb(31,158,137), rgb(53,183,121), rgb(109,205,89),
+      rgb(180,222,44), rgb(253,231,37));
+  }
+
+  /* Detail panel */
+  #detail-panel {
+    display: none;
+    position: fixed;
+    bottom: 70px;
+    left: 8px;
+    right: 8px;
+    max-height: 50vh;
+    background: var(--detail-bg);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    z-index: 200;
+    overflow-y: auto;
+    padding: 16px;
+    animation: slideUp 0.25s ease-out;
+  }
+
+  #detail-panel.visible { display: block; }
+
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  #detail-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text-muted);
+    line-height: 1;
+    padding: 2px 6px;
+  }
+
+  #detail-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--clemson-purple);
+    margin-bottom: 12px;
+    padding-right: 30px;
+  }
+
+  .metric-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .metric-bar-label {
+    width: 82px;
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  .metric-bar-track {
+    flex: 1;
+    height: 10px;
+    background: var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .metric-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    background: var(--clemson-purple);
+    transition: width 0.3s ease;
+  }
+
+  .metric-bar-fill.highlighted { background: var(--clemson-orange); }
+
+  .metric-bar-value {
+    width: 34px;
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  #detail-classification {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #ede8f5;
+    border-left: 4px solid var(--clemson-purple);
+    border-radius: 0 6px 6px 0;
+  }
+
+  #detail-classification .class-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--clemson-purple);
+    margin-bottom: 2px;
+  }
+
+  #detail-classification .class-desc {
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  #detail-classification .class-note {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Bottom drawer */
+  #drawer-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 290;
+  }
+
+  #drawer-overlay.visible { display: block; }
+
+  #drawer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+    z-index: 300;
+    max-height: 55vh;
+    transform: translateY(calc(100% - 70px));
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  #drawer.expanded { transform: translateY(0); }
+
+  #drawer-handle {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 16px 6px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #drawer-handle-bar {
+    width: 36px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 8px;
+  }
+
+  #drawer-handle-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  #drawer-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 16px;
+  }
+
+  .drawer-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    margin: 10px 0 6px;
+  }
+
+  /* Metric chips */
+  #metric-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .metric-chip {
+    padding: 5px 12px;
+    border-radius: 16px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .metric-chip.active {
+    background: var(--clemson-orange);
+    border-color: var(--clemson-orange);
+    color: #fff;
+  }
+
+  /* Quick select buttons */
+  #quick-select {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .quick-btn {
+    padding: 5px 12px;
+    border-radius: 16px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .quick-btn:hover { border-color: var(--clemson-purple); }
+
+  /* Major toggles */
+  #major-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .major-toggle {
+    padding: 5px 10px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .major-toggle.active {
+    background: var(--clemson-purple);
+    border-color: var(--clemson-purple);
+    color: #fff;
+  }
+
+  /* Heatmap grid styles */
+  .hm-grid {
+    display: inline-grid;
+    gap: 2px;
+  }
+
+  .hm-cell {
+    aspect-ratio: 1;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background-color 0.3s;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+
+  .hm-cell:active { transform: scale(0.92); }
+
+  .hm-cell:hover, .hm-cell.selected {
+    outline: 2px solid var(--clemson-orange);
+    outline-offset: 1px;
+    z-index: 1;
+  }
+
+  .hm-col-label {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    font-weight: 600;
+    color: var(--text-muted);
+    overflow: hidden;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    padding: 2px 0;
+    line-height: 1.1;
+  }
+
+  .hm-row-label {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-weight: 600;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 4px;
+    line-height: 1.1;
+  }
+
+  .hm-corner { /* empty top-left corner */ }
+
+  /* Loading */
+  #loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+    gap: 10px;
+  }
+
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--border);
+    border-top-color: var(--clemson-purple);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header id="header">
+  <div class="header-dot dot-orange"></div>
+  <h1>STEM Curriculum Explorer</h1>
+  <div class="header-dot dot-purple"></div>
+</header>
+
+<!-- Domain pills -->
+<nav id="domain-bar">
+  <button class="domain-pill" data-domain="interdisciplinary">Cross-Domain</button>
+  <button class="domain-pill" data-domain="computing">Computing</button>
+  <button class="domain-pill" data-domain="engineering">Engineering</button>
+  <button class="domain-pill" data-domain="sciences">Sciences</button>
+</nav>
+
+<!-- Main -->
+<main id="main">
+  <div id="loading"><div class="spinner"></div>Loading data…</div>
+
+  <div id="heatmap-container" style="display:none;">
+    <div id="heatmap-wrapper"></div>
+  </div>
+
+  <div id="legend" style="display:none;">
+    <span>0%</span>
+    <div id="legend-bar"></div>
+    <span>100%</span>
+  </div>
+</main>
+
+<!-- Detail panel -->
+<div id="detail-panel" role="dialog" aria-modal="true" aria-label="Cell details">
+  <button id="detail-close" aria-label="Close details">&times;</button>
+  <div id="detail-title"></div>
+  <div id="detail-bars"></div>
+  <div id="detail-classification"></div>
+</div>
+
+<!-- Drawer overlay -->
+<div id="drawer-overlay"></div>
+
+<!-- Bottom drawer -->
+<div id="drawer">
+  <div id="drawer-handle">
+    <div id="drawer-handle-bar"></div>
+    <div id="drawer-handle-label">Controls</div>
+  </div>
+  <div id="drawer-content">
+    <div class="drawer-section-title">Metric</div>
+    <div id="metric-chips"></div>
+
+    <div class="drawer-section-title">Majors</div>
+    <div id="quick-select"></div>
+    <div id="major-toggles"></div>
+  </div>
+</div>
+
+<script>
+// ─── Viridis LUT (256 RGB entries) ──────────────────────────────────────────
+const VIRIDIS = (function() {
+  // 32 key stops from the viridis colormap; we'll interpolate to 256
+  const stops = [
+    [68,1,84],[69,5,90],[70,10,95],[71,15,101],[71,20,107],
+    [72,25,113],[72,30,118],[72,36,124],[71,41,130],[70,47,135],
+    [69,53,141],[66,59,146],[63,65,151],[60,71,156],[57,77,160],
+    [53,83,164],[49,90,167],[46,96,171],[43,102,174],[40,108,177],
+    [38,114,179],[37,120,181],[36,126,183],[35,132,184],[33,138,185],
+    [32,144,186],[31,150,186],[30,156,186],[31,162,185],[33,168,184],
+    [36,174,182],[40,179,180],[47,184,177],[54,189,173],[63,193,168],
+    [74,197,162],[86,200,155],[99,203,148],[112,206,141],[124,208,133],
+    [137,210,125],[150,212,117],[163,213,108],[175,215,99],[188,215,91],
+    [200,216,82],[212,216,73],[224,215,64],[235,214,55],[244,211,47],
+    [251,207,41],[254,202,36],[254,197,32],[253,191,29],[251,185,27],
+    [249,178,25],[246,171,23],[244,164,21],[241,156,20],[238,149,19],
+    [234,141,18],[230,133,17],[226,126,17],[221,118,17],[216,111,18],
+    [210,104,19],[204,97,20],[198,90,22],[192,84,24],[186,77,27],
+    [179,71,30],[172,65,34],[165,59,38],[158,54,42],[150,48,47],
+    [143,43,52],[135,38,57],[127,34,62],[119,29,68],[111,25,73],
+    [103,21,79],[95,17,85],[87,14,90],[79,11,96],[70,9,101],
+    [62,7,107],[54,5,113],[47,5,118],[40,4,124],[35,5,128],
+    [30,6,132],[27,7,136],[25,9,140],[23,12,143],[22,15,147],
+    [21,18,151],[21,21,155],[21,25,158],[21,29,161],[21,33,165],
+    [22,37,168],[22,41,171],[23,45,174],[23,50,176],[24,54,179],
+    [24,58,181],[25,62,184],[25,67,186],[26,71,188],[26,75,191],
+    [27,79,193],[27,84,195],[28,88,197],[28,92,199],[29,96,201],
+    [29,101,203],[30,105,205],[30,109,207],[31,113,209],[31,118,210],
+    [32,122,212],[33,126,213],[34,130,215],[34,134,216],[35,139,217],
+    [36,143,219],[38,147,220],[39,151,221],[40,155,222],[42,159,223],
+    [43,163,224],[45,167,225],[47,171,226],[49,175,227],[51,179,228],
+    [53,183,229],[55,186,230],[57,190,230],[60,194,231],[63,197,232],
+    [66,200,232],[70,203,233],[73,207,233],[77,210,234],[81,213,234],
+    [85,215,235],[90,218,235],[94,220,236],[99,223,236],[104,225,236],
+    [109,227,237],[114,229,237],[120,231,237],[125,233,237],[131,234,238],
+    [136,236,238],[142,237,238],[148,238,238],[154,240,238],[160,241,238],
+    [166,242,237],[172,243,237],[178,244,237],[184,245,236],[190,246,236],
+    [196,247,235],[202,248,234],[208,248,234],[214,249,233],[220,250,232],
+    [226,250,231],[231,251,230],[237,251,229],[243,252,228],[248,252,227],
+    [253,231,37]
+  ];
+
+  // Build 256-entry table by linearly interpolating between stops
+  const lut = [];
+  const n = stops.length - 1;
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255 * n;
+    const lo = Math.floor(t);
+    const hi = Math.min(lo + 1, n);
+    const f = t - lo;
+    const r = Math.round(stops[lo][0] + f * (stops[hi][0] - stops[lo][0]));
+    const g = Math.round(stops[lo][1] + f * (stops[hi][1] - stops[lo][1]));
+    const b = Math.round(stops[lo][2] + f * (stops[hi][2] - stops[lo][2]));
+    lut.push([r, g, b]);
+  }
+  return lut;
+})();
+
+function viridisColor(value) {
+  // value: 0–100
+  const idx = Math.round(Math.min(Math.max(value, 0), 100) * 2.55);
+  const [r, g, b] = VIRIDIS[idx];
+  return `rgb(${r},${g},${b})`;
+}
+
+// ─── Config ─────────────────────────────────────────────────────────────────
+const METRIC_NAMES = {
+  jaccard: 'Jaccard',
+  tfidf: 'TF-IDF Cosine',
+  overlap: 'Overlap',
+  pmi: 'PMI',
+  max_scaled: 'Max-Scaled',
+  dice: 'Dice',
+  kulczynski: 'Kulczynski'
+};
+
+const METRIC_KEYS = Object.keys(METRIC_NAMES);
+
+const DOMAIN_NAMES = {
+  interdisciplinary: 'Cross-Domain',
+  computing: 'Computing',
+  engineering: 'Engineering',
+  sciences: 'Sciences'
+};
+
+// ─── App state ───────────────────────────────────────────────────────────────
+const state = {
+  domain: 'interdisciplinary',
+  metric: 'jaccard',
+  data: {},          // domain -> parsed JSON
+  activeMajors: [],  // indices into labels
+  labels: [],        // [{cip, name}, ...]
+  selectedCell: null // {row, col} or null
+};
+
+// ─── DOM refs ────────────────────────────────────────────────────────────────
+const $loading = document.getElementById('loading');
+const $heatmapContainer = document.getElementById('heatmap-container');
+const $heatmapWrapper = document.getElementById('heatmap-wrapper');
+const $legend = document.getElementById('legend');
+const $detailPanel = document.getElementById('detail-panel');
+const $detailClose = document.getElementById('detail-close');
+const $detailTitle = document.getElementById('detail-title');
+const $detailBars = document.getElementById('detail-bars');
+const $detailClassification = document.getElementById('detail-classification');
+const $drawer = document.getElementById('drawer');
+const $drawerHandle = document.getElementById('drawer-handle');
+const $drawerOverlay = document.getElementById('drawer-overlay');
+const $metricChips = document.getElementById('metric-chips');
+const $quickSelect = document.getElementById('quick-select');
+const $majorToggles = document.getElementById('major-toggles');
+const $domainPills = document.querySelectorAll('.domain-pill');
+
+// ─── Drawer ───────────────────────────────────────────────────────────────────
+let drawerExpanded = false;
+
+function setDrawer(expanded) {
+  drawerExpanded = expanded;
+  $drawer.classList.toggle('expanded', expanded);
+  $drawerOverlay.classList.toggle('visible', expanded);
+  document.body.style.overflow = expanded ? 'hidden' : '';
+}
+
+function setupDrawer() {
+  $drawerHandle.addEventListener('click', () => setDrawer(!drawerExpanded));
+  $drawerOverlay.addEventListener('click', () => setDrawer(false));
+}
+
+// ─── Detail panel ─────────────────────────────────────────────────────────────
+function classify(metrics) {
+  const j = metrics.jaccard || 0;
+  const t = metrics.tfidf || 0;
+  const o = metrics.overlap || 0;
+  if (j > 30 && t > 20) {
+    return {
+      label: 'Convergent',
+      desc: 'These programs share a substantial core of common coursework across multiple metrics.',
+      note: 'Based on Jaccard > 30 and TF-IDF Cosine > 20.'
+    };
+  } else if (o > 50 && j < 30) {
+    return {
+      label: 'Nested',
+      desc: 'One program\'s curriculum is largely contained within the other\'s, suggesting a subset relationship.',
+      note: 'Based on Overlap > 50 and Jaccard < 30.'
+    };
+  } else if (j >= 20 && j <= 50 && t < 20) {
+    return {
+      label: 'Parallel',
+      desc: 'These programs share some courses but diverge in emphasis and specialized content.',
+      note: 'Based on Jaccard 20–50 and TF-IDF Cosine < 20.'
+    };
+  } else {
+    return {
+      label: 'Weak / Distinct',
+      desc: 'These programs have limited curricular overlap; they serve largely distinct learning objectives.',
+      note: 'Low similarity values across all metrics.'
+    };
+  }
+}
+
+function showDetail(row, col) {
+  const data = state.data[state.domain];
+  if (!data) return;
+
+  // Deselect previously selected cell
+  document.querySelectorAll('.hm-cell.selected').forEach(el => el.classList.remove('selected'));
+
+  // Mark new selected cell
+  const cellEl = document.querySelector(`.hm-cell[data-row="${row}"][data-col="${col}"]`);
+  if (cellEl) cellEl.classList.add('selected');
+
+  state.selectedCell = { row, col };
+
+  const aIdx = state.activeMajors[row];
+  const bIdx = state.activeMajors[col];
+  const aName = state.labels[aIdx].name;
+  const bName = state.labels[bIdx].name;
+
+  $detailTitle.textContent = `${aName} ↔ ${bName}`;
+
+  // Build metric values
+  const metricValues = {};
+  for (const key of METRIC_KEYS) {
+    const matrix = data.matrices[key];
+    if (matrix) {
+      metricValues[key] = matrix[aIdx][bIdx];
+    } else {
+      metricValues[key] = 0;
+    }
+  }
+
+  // Bars
+  $detailBars.innerHTML = '';
+  for (const key of METRIC_KEYS) {
+    const val = metricValues[key];
+    const isActive = key === state.metric;
+    const row_el = document.createElement('div');
+    row_el.className = 'metric-bar-row';
+    row_el.innerHTML = `
+      <div class="metric-bar-label">${METRIC_NAMES[key]}</div>
+      <div class="metric-bar-track">
+        <div class="metric-bar-fill${isActive ? ' highlighted' : ''}" style="width:${val.toFixed(1)}%"></div>
+      </div>
+      <div class="metric-bar-value">${val.toFixed(1)}%</div>
+    `;
+    $detailBars.appendChild(row_el);
+  }
+
+  // Classification
+  const cls = classify(metricValues);
+  $detailClassification.innerHTML = `
+    <div class="class-label">${cls.label}</div>
+    <div class="class-desc">${cls.desc}</div>
+    <div class="class-note">${cls.note}</div>
+  `;
+
+  $detailPanel.classList.add('visible');
+  // If drawer is expanded, collapse it so panel is visible
+  if (drawerExpanded) setDrawer(false);
+}
+
+function hideDetail() {
+  $detailPanel.classList.remove('visible');
+  document.querySelectorAll('.hm-cell.selected').forEach(el => el.classList.remove('selected'));
+  state.selectedCell = null;
+}
+
+function setupDetail() {
+  $detailClose.addEventListener('click', hideDetail);
+}
+
+// ─── Heatmap rendering ────────────────────────────────────────────────────────
+function renderHeatmap() {
+  const data = state.data[state.domain];
+  if (!data) return;
+
+  const active = state.activeMajors;
+  const n = active.length;
+  if (n < 2) return;
+
+  const matrix = data.matrices[state.metric];
+
+  // Determine sizing
+  const containerWidth = ($heatmapContainer.clientWidth || window.innerWidth) - 16;
+  const labelWidth = 80;
+  const available = containerWidth - labelWidth - (n - 1) * 2;
+  const cellSize = Math.max(16, Math.floor(available / n));
+
+  // Font size based on count
+  let fontSize;
+  if (n > 15) fontSize = '8px';
+  else if (n > 10) fontSize = '9px';
+  else fontSize = '10px';
+
+  const colLabelHeight = labelWidth; // rotate 90°, so height = labelWidth
+
+  // Build grid: (n+1) cols × (n+1) rows
+  // col 0: row labels (width=labelWidth), cols 1..n: cells (width=cellSize)
+  // row 0: col labels (height=colLabelHeight), rows 1..n: data rows
+
+  const gridCols = `${labelWidth}px ${Array(n).fill(`${cellSize}px`).join(' ')}`;
+  const gridRows = `${colLabelHeight}px ${Array(n).fill(`${cellSize}px`).join(' ')}`;
+
+  $heatmapWrapper.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'hm-grid';
+  grid.style.gridTemplateColumns = gridCols;
+  grid.style.gridTemplateRows = gridRows;
+
+  // Corner cell
+  const corner = document.createElement('div');
+  corner.className = 'hm-corner';
+  grid.appendChild(corner);
+
+  // Column labels (row 0, cols 1..n)
+  for (let c = 0; c < n; c++) {
+    const idx = active[c];
+    const label = document.createElement('div');
+    label.className = 'hm-col-label';
+    label.style.fontSize = fontSize;
+    label.style.width = cellSize + 'px';
+    label.textContent = state.labels[idx].name;
+    grid.appendChild(label);
+  }
+
+  // Data rows
+  for (let r = 0; r < n; r++) {
+    const rIdx = active[r];
+
+    // Row label
+    const rowLabel = document.createElement('div');
+    rowLabel.className = 'hm-row-label';
+    rowLabel.style.fontSize = fontSize;
+    rowLabel.style.height = cellSize + 'px';
+    rowLabel.textContent = state.labels[rIdx].name;
+    grid.appendChild(rowLabel);
+
+    // Cells
+    for (let c = 0; c < n; c++) {
+      const cIdx = active[c];
+      const value = matrix[rIdx][cIdx];
+      const cell = document.createElement('div');
+      cell.className = 'hm-cell';
+      cell.style.width = cellSize + 'px';
+      cell.style.height = cellSize + 'px';
+      cell.style.backgroundColor = viridisColor(value);
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      cell.title = `${state.labels[rIdx].name} ↔ ${state.labels[cIdx].name}: ${value.toFixed(1)}%`;
+
+      // Restore selected state if same cell
+      if (state.selectedCell && state.selectedCell.row === r && state.selectedCell.col === c) {
+        cell.classList.add('selected');
+      }
+
+      cell.addEventListener('click', () => showDetail(r, c));
+      grid.appendChild(cell);
+    }
+  }
+
+  $heatmapWrapper.appendChild(grid);
+  $heatmapContainer.style.display = 'block';
+  $legend.style.display = 'flex';
+}
+
+// ─── Metric chips ─────────────────────────────────────────────────────────────
+function renderMetricChips() {
+  $metricChips.innerHTML = '';
+  for (const key of METRIC_KEYS) {
+    const btn = document.createElement('button');
+    btn.className = 'metric-chip' + (key === state.metric ? ' active' : '');
+    btn.textContent = METRIC_NAMES[key];
+    btn.addEventListener('click', () => {
+      state.metric = key;
+      renderMetricChips();
+      renderHeatmap();
+      // Update detail panel bars if open
+      if (state.selectedCell) {
+        showDetail(state.selectedCell.row, state.selectedCell.col);
+      }
+    });
+    $metricChips.appendChild(btn);
+  }
+}
+
+// ─── Major toggles ────────────────────────────────────────────────────────────
+function renderMajorToggles() {
+  const n = state.labels.length;
+
+  // Quick select buttons
+  $quickSelect.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'quick-btn';
+  allBtn.textContent = 'All';
+  allBtn.addEventListener('click', () => {
+    state.activeMajors = state.labels.map((_, i) => i);
+    state.selectedCell = null;
+    renderMajorToggles();
+    renderHeatmap();
+  });
+  $quickSelect.appendChild(allBtn);
+
+  if (n > 10) {
+    const top10Btn = document.createElement('button');
+    top10Btn.className = 'quick-btn';
+    top10Btn.textContent = 'Top 10';
+    top10Btn.addEventListener('click', () => {
+      state.activeMajors = Array.from({length: 10}, (_, i) => i);
+      state.selectedCell = null;
+      renderMajorToggles();
+      renderHeatmap();
+    });
+    $quickSelect.appendChild(top10Btn);
+  }
+
+  const noneBtn = document.createElement('button');
+  noneBtn.className = 'quick-btn';
+  noneBtn.textContent = 'None';
+  noneBtn.addEventListener('click', () => {
+    state.activeMajors = [0, 1];
+    state.selectedCell = null;
+    renderMajorToggles();
+    renderHeatmap();
+  });
+  $quickSelect.appendChild(noneBtn);
+
+  // Toggle buttons
+  $majorToggles.innerHTML = '';
+  for (let i = 0; i < state.labels.length; i++) {
+    const isActive = state.activeMajors.includes(i);
+    const btn = document.createElement('button');
+    btn.className = 'major-toggle' + (isActive ? ' active' : '');
+    btn.textContent = state.labels[i].name;
+    btn.dataset.idx = i;
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      const pos = state.activeMajors.indexOf(idx);
+      if (pos === -1) {
+        state.activeMajors.push(idx);
+        state.activeMajors.sort((a, b) => a - b);
+      } else {
+        if (state.activeMajors.length <= 2) return; // minimum 2
+        state.activeMajors.splice(pos, 1);
+      }
+      state.selectedCell = null;
+      hideDetail();
+      renderMajorToggles();
+      renderHeatmap();
+    });
+    $majorToggles.appendChild(btn);
+  }
+}
+
+// ─── Domain switching ─────────────────────────────────────────────────────────
+async function switchDomain(domain) {
+  state.domain = domain;
+  state.selectedCell = null;
+  hideDetail();
+
+  // Update pill styles
+  $domainPills.forEach(p => p.classList.toggle('active', p.dataset.domain === domain));
+
+  // Show loading if not cached
+  if (!state.data[domain]) {
+    $loading.style.display = 'flex';
+    $heatmapContainer.style.display = 'none';
+    $legend.style.display = 'none';
+    try {
+      const res = await fetch(`data/${domain}.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      state.data[domain] = await res.json();
+    } catch (err) {
+      $loading.textContent = `Error loading ${domain} data.`;
+      console.error(err);
+      return;
+    }
+  }
+
+  const data = state.data[domain];
+  state.labels = Object.entries(data.labels).map(([cip, name]) => ({ cip, name }));
+  state.activeMajors = state.labels.map((_, i) => i);
+
+  $loading.style.display = 'none';
+
+  renderMetricChips();
+  renderMajorToggles();
+  renderHeatmap();
+}
+
+// ─── Domain pill listeners ────────────────────────────────────────────────────
+$domainPills.forEach(pill => {
+  pill.addEventListener('click', () => switchDomain(pill.dataset.domain));
+});
+
+// ─── Re-render on resize ──────────────────────────────────────────────────────
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(renderHeatmap, 150);
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+setupDrawer();
+setupDetail();
+switchDomain('interdisciplinary');
+</script>
+</body>
+</html>
