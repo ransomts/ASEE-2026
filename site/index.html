@@ -1005,8 +1005,9 @@ function showDetail(row, col) {
 
   state.selectedCell = { row, col };
 
-  const aIdx = state.activeMajors[row];
-  const bIdx = state.activeMajors[col];
+  const displayOrder = state.displayOrder || state.activeMajors;
+  const aIdx = displayOrder[row];
+  const bIdx = displayOrder[col];
   const aName = state.labels[aIdx].name;
   const bName = state.labels[bIdx].name;
 
@@ -1098,7 +1099,7 @@ function renderHeatmap() {
   const data = state.data[state.domain];
   if (!data) return;
 
-  let active = state.activeMajors;
+  let active = [...state.activeMajors];
   const n = active.length;
   if (n < 2) return;
 
@@ -1110,6 +1111,9 @@ function renderHeatmap() {
     const activeSet = new Set(active);
     active = leafOrder.filter(i => activeSet.has(i));
   }
+
+  // Store display order so showDetail can look up correct indices
+  state.displayOrder = active;
 
   const matrix = data.matrices[state.metric];
 
