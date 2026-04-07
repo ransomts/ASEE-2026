@@ -30,6 +30,12 @@ david-folio.png
 fig1.png
 examples/
 
+# Data (restricted MIDFIELD sources)
+/data/
+
+# Superpowers brainstorm sessions
+.superpowers/
+
 # Scratch / duplicates
 ASEE_2026.qmd
 asee_wip.qmd
