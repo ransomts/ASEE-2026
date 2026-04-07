@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>STEM Curriculum Explorer</title>
 <style>
   :root {
@@ -138,10 +138,12 @@
     z-index: 200;
     overflow-y: auto;
     padding: 16px;
-    animation: slideUp 0.25s ease-out;
   }
 
-  #detail-panel.visible { display: block; }
+  #detail-panel.visible {
+    display: block;
+    animation: slideUp 0.25s ease-out;
+  }
 
   @keyframes slideUp {
     from { transform: translateY(30px); opacity: 0; }
@@ -648,7 +650,7 @@ function classify(metrics) {
   const j = metrics.jaccard || 0;
   const t = metrics.tfidf || 0;
   const o = metrics.overlap || 0;
-  if (j > 30 && t > 20) {
+  if (j >= 30 && t >= 20) {
     return {
       label: 'Convergent',
       desc: 'These programs share a substantial core of common coursework across multiple metrics.',
@@ -724,12 +726,19 @@ function showDetail(row, col) {
   }
 
   // Classification
-  const cls = classify(metricValues);
-  $detailClassification.innerHTML = `
-    <div class="class-label">${cls.label}</div>
-    <div class="class-desc">${cls.desc}</div>
-    <div class="class-note">${cls.note}</div>
-  `;
+  if (aIdx === bIdx) {
+    $detailClassification.innerHTML = `
+      <div class="class-label">Same Program</div>
+      <div class="class-desc">This is a self-comparison — all metrics are 100%.</div>
+    `;
+  } else {
+    const cls = classify(metricValues);
+    $detailClassification.innerHTML = `
+      <div class="class-label">${cls.label}</div>
+      <div class="class-desc">${cls.desc}</div>
+      <div class="class-note">${cls.note}</div>
+    `;
+  }
 
   $detailPanel.classList.add('visible');
   // If drawer is expanded, collapse it so panel is visible
@@ -939,6 +948,7 @@ async function switchDomain(domain) {
 
   // Show loading if not cached
   if (!state.data[domain]) {
+    $loading.innerHTML = '<div class="spinner"></div>Loading data\u2026';
     $loading.style.display = 'flex';
     $heatmapContainer.style.display = 'none';
     $legend.style.display = 'none';
@@ -947,7 +957,7 @@ async function switchDomain(domain) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       state.data[domain] = await res.json();
     } catch (err) {
-      $loading.textContent = `Error loading ${domain} data.`;
+      $loading.innerHTML = `Error loading ${domain} data. Tap a domain to retry.`;
       console.error(err);
       return;
     }
