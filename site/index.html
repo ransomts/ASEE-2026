@@ -1103,11 +1103,10 @@ function renderHeatmap() {
   const n = active.length;
   if (n < 2) return;
 
-  // Reorder by dendrogram leaf order when enabled
+  // Always reorder by dendrogram leaf order (clustering groups similar programs)
   const dendro = data.dendrogram;
-  if (showDendrograms && dendro) {
+  if (dendro) {
     const leafOrder = dendro.leaf_order;
-    // Filter leaf order to only include active majors, preserving dendrogram order
     const activeSet = new Set(active);
     active = leafOrder.filter(i => activeSet.has(i));
   }
