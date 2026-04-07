@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="darkreader-lock">
 <title>STEM Curriculum Explorer</title>
 <meta name="description" content="Interactive explorer for curricular overlap between STEM programs using the MIDFIELD dataset. ASEE 2026.">
 <meta property="og:title" content="STEM Curriculum Explorer">
@@ -496,49 +497,71 @@
   /* ══════════════════════════════════════════════════════════════════════════
      DARK MODE
      ══════════════════════════════════════════════════════════════════════════ */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1a1a2e;
-      --text: #e6edf3;
-      --text-muted: #8b949e;
-      --surface: #16213e;
-      --border: #30363d;
-      --detail-bg: #1e1533;
-    }
-    #header {
-      background: #16213e;
-      border-bottom-color: var(--clemson-orange);
-    }
-    .domain-pill {
-      border-color: var(--clemson-purple);
-      color: #ccc;
-    }
-    .domain-pill.active {
-      color: #fff;
-    }
-    #metric-indicator {
-      background: var(--surface);
-      border-bottom-color: var(--border);
-    }
-    .metric-chip, .quick-btn, .major-toggle {
-      background: var(--surface);
-      border-color: var(--border);
-      color: var(--text-muted);
-    }
-    #detail-panel {
-      background: var(--detail-bg);
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
-    }
-    #drawer {
-      background: var(--surface);
-      box-shadow: 0 -4px 24px rgba(0,0,0,0.3);
-    }
-    .metric-bar-track {
-      background: var(--border);
-    }
-    #detail-classification {
-      background: #2a1f3d;
-    }
+  /* Dark theme (toggled via data-theme attribute) */
+  [data-theme="dark"] {
+    --bg: #1a1a2e;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --surface: #16213e;
+    --border: #30363d;
+    --detail-bg: #1e1533;
+  }
+  [data-theme="dark"] #header {
+    background: #16213e;
+    border-bottom-color: var(--clemson-orange);
+  }
+  [data-theme="dark"] .domain-pill {
+    border-color: var(--clemson-purple);
+    color: #ccc;
+  }
+  [data-theme="dark"] .domain-pill.active {
+    color: #fff;
+  }
+  [data-theme="dark"] #metric-indicator {
+    background: var(--surface);
+    border-bottom-color: var(--border);
+  }
+  [data-theme="dark"] .metric-chip,
+  [data-theme="dark"] .quick-btn,
+  [data-theme="dark"] .major-toggle {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text-muted);
+  }
+  [data-theme="dark"] #detail-panel {
+    background: var(--detail-bg);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+  }
+  [data-theme="dark"] #drawer {
+    background: var(--surface);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.3);
+  }
+  [data-theme="dark"] .metric-bar-track {
+    background: var(--border);
+  }
+  [data-theme="dark"] #detail-classification {
+    background: #2a1f3d;
+  }
+  [data-theme="dark"] .header-subtitle {
+    color: var(--text-muted);
+  }
+
+  /* Theme toggle */
+  #theme-toggle {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #theme-toggle:hover {
+    background: rgba(0,0,0,0.06);
+  }
+  [data-theme="dark"] #theme-toggle:hover {
+    background: rgba(255,255,255,0.1);
   }
 
   /* ══════════════════════════════════════════════════════════════════════════
@@ -657,7 +680,7 @@
     <h1>STEM Curriculum Explorer</h1>
     <p class="header-subtitle">Explore curricular overlap between STEM programs using the MIDFIELD dataset</p>
   </div>
-  <div class="header-dot dot-purple"></div>
+  <button id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">&#9790;</button>
 </header>
 
 <!-- Domain pills -->
@@ -916,6 +939,28 @@ function setDrawer(expanded) {
   $drawer.classList.toggle('expanded', expanded);
   $drawerOverlay.classList.toggle('visible', expanded);
   document.body.style.overflow = expanded ? 'hidden' : '';
+}
+
+function setupThemeToggle() {
+  const btn = document.getElementById('theme-toggle');
+  // Restore saved preference
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.body.setAttribute('data-theme', 'dark');
+    btn.textContent = '\u2600'; // sun
+  }
+  btn.addEventListener('click', () => {
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+      document.body.removeAttribute('data-theme');
+      btn.textContent = '\u263E'; // moon
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.body.setAttribute('data-theme', 'dark');
+      btn.textContent = '\u2600'; // sun
+      localStorage.setItem('theme', 'dark');
+    }
+  });
 }
 
 function setupDrawer() {
@@ -1534,6 +1579,7 @@ window.addEventListener('resize', () => {
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
+setupThemeToggle();
 setupDrawer();
 setupDetail();
 const _hashParams = loadFromHash();
