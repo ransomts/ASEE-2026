@@ -120,10 +120,7 @@
     flex: 1;
     height: 14px;
     border-radius: 6px;
-    background: linear-gradient(to right,
-      rgb(68,1,84), rgb(72,40,120), rgb(62,83,143), rgb(49,104,142),
-      rgb(38,130,142), rgb(31,158,137), rgb(53,183,121), rgb(109,205,89),
-      rgb(180,222,44), rgb(253,231,37));
+    background: linear-gradient(to right, #fff, #ffb060, #F56600, #a03820, #522D80);
   }
 
   /* Detail panel */
@@ -510,6 +507,9 @@
     <div class="drawer-section-title">Metric</div>
     <div id="metric-chips"></div>
 
+    <div class="drawer-section-title">Palette</div>
+    <div id="palette-toggle"></div>
+
     <div class="drawer-section-title">Majors</div>
     <div id="quick-select"></div>
     <div id="major-toggles"></div>
@@ -575,6 +575,41 @@ const VIRIDIS = (function() {
   return lut;
 })();
 
+// ─── Orange-Purple palette (white → orange → purple, Clemson-branded) ────────
+const ORANGEPURPLE = (function() {
+  // White → light orange → Clemson orange → deep orange → purple
+  const stops = [
+    [255,255,255],[255,250,240],[255,243,224],[255,236,208],[255,228,192],
+    [255,220,176],[255,211,160],[255,202,144],[255,192,128],[255,182,112],
+    [255,171,96],[255,160,80],[254,148,64],[252,136,48],[249,122,32],
+    [245,108,16],[245,102,0],[238,94,0],[228,86,4],[218,78,10],
+    [206,70,18],[194,62,28],[182,56,38],[170,50,48],[158,46,58],
+    [146,42,66],[134,40,74],[122,38,82],[112,36,88],[102,34,96],
+    [92,34,104],[82,45,128]
+  ];
+  const lut = [];
+  const n = stops.length - 1;
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255 * n;
+    const lo = Math.floor(t);
+    const hi = Math.min(lo + 1, n);
+    const f = t - lo;
+    const r = Math.round(stops[lo][0] + f * (stops[hi][0] - stops[lo][0]));
+    const g = Math.round(stops[lo][1] + f * (stops[hi][1] - stops[lo][1]));
+    const b = Math.round(stops[lo][2] + f * (stops[hi][2] - stops[lo][2]));
+    lut.push([r, g, b]);
+  }
+  return lut;
+})();
+
+const PALETTES = {
+  orangepurple: { name: 'Orange\u2013Purple', lut: ORANGEPURPLE,
+    gradient: 'linear-gradient(to right, #fff, #ffb060, #F56600, #a03820, #522D80)' },
+  viridis: { name: 'Viridis (colorblind)', lut: VIRIDIS,
+    gradient: 'linear-gradient(to right, rgb(68,1,84), rgb(49,104,142), rgb(53,183,121), rgb(253,231,37))' }
+};
+let currentPalette = 'orangepurple';
+
 // Split a name into two lines at the space/slash closest to the middle
 function twoLineHTML(name) {
   const spaces = [];
@@ -589,10 +624,9 @@ function twoLineHTML(name) {
   return name;
 }
 
-function viridisColor(value) {
-  // value: 0–100
+function cellColor(value) {
   const idx = Math.round(Math.min(Math.max(value, 0), 100) * 2.55);
-  const [r, g, b] = VIRIDIS[idx];
+  const [r, g, b] = PALETTES[currentPalette].lut[idx];
   return `rgb(${r},${g},${b})`;
 }
 
@@ -640,6 +674,8 @@ const $drawer = document.getElementById('drawer');
 const $drawerHandle = document.getElementById('drawer-handle');
 const $drawerOverlay = document.getElementById('drawer-overlay');
 const $metricChips = document.getElementById('metric-chips');
+const $paletteToggle = document.getElementById('palette-toggle');
+const $legendBar = document.getElementById('legend-bar');
 const $quickSelect = document.getElementById('quick-select');
 const $majorToggles = document.getElementById('major-toggles');
 const $domainPills = document.querySelectorAll('.domain-pill');
@@ -861,7 +897,7 @@ function renderHeatmap() {
       cell.className = 'hm-cell';
       cell.style.width = cellSize + 'px';
       cell.style.height = cellSize + 'px';
-      cell.style.backgroundColor = viridisColor(value);
+      cell.style.backgroundColor = cellColor(value);
       cell.dataset.row = r;
       cell.dataset.col = c;
       cell.title = `${state.labels[rIdx].name} ↔ ${state.labels[cIdx].name}: ${value.toFixed(1)}%`;
@@ -882,6 +918,22 @@ function renderHeatmap() {
 }
 
 // ─── Metric chips ─────────────────────────────────────────────────────────────
+function renderPaletteToggle() {
+  $paletteToggle.innerHTML = '';
+  for (const key of Object.keys(PALETTES)) {
+    const btn = document.createElement('button');
+    btn.className = 'metric-chip' + (key === currentPalette ? ' active' : '');
+    btn.textContent = PALETTES[key].name;
+    btn.addEventListener('click', () => {
+      currentPalette = key;
+      $legendBar.style.background = PALETTES[key].gradient;
+      renderPaletteToggle();
+      renderHeatmap();
+    });
+    $paletteToggle.appendChild(btn);
+  }
+}
+
 function renderMetricChips() {
   $metricChips.innerHTML = '';
   for (const key of METRIC_KEYS) {
@@ -907,36 +959,51 @@ function renderMajorToggles() {
 
   // Quick select buttons
   $quickSelect.innerHTML = '';
-  const allBtn = document.createElement('button');
-  allBtn.className = 'quick-btn';
-  allBtn.textContent = 'All';
-  allBtn.addEventListener('click', () => {
-    state.activeMajors = state.labels.map((_, i) => i);
-    state.selectedCell = null;
-    renderMajorToggles();
-    renderHeatmap();
-  });
-  $quickSelect.appendChild(allBtn);
 
-  if (n > 10) {
-    const top10Btn = document.createElement('button');
-    top10Btn.className = 'quick-btn';
-    top10Btn.textContent = 'Top 10';
-    top10Btn.addEventListener('click', () => {
-      state.activeMajors = Array.from({length: 10}, (_, i) => i);
+  function addQuickBtn(label, count) {
+    const btn = document.createElement('button');
+    btn.className = 'quick-btn';
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      state.activeMajors = Array.from({length: Math.min(count, n)}, (_, i) => i);
       state.selectedCell = null;
+      hideDetail();
       renderMajorToggles();
       renderHeatmap();
     });
-    $quickSelect.appendChild(top10Btn);
+    $quickSelect.appendChild(btn);
   }
 
+  addQuickBtn('All', n);
+  if (n > 15) addQuickBtn('Top 15', 15);
+  if (n > 10) addQuickBtn('Top 10', 10);
+  if (n > 5) addQuickBtn('Top 5', 5);
+
+  // Custom number picker
+  const customBtn = document.createElement('button');
+  customBtn.className = 'quick-btn';
+  customBtn.textContent = 'Top\u2026';
+  customBtn.addEventListener('click', () => {
+    const val = prompt(`Show top N majors (2\u2013${n}):`, String(Math.min(10, n)));
+    if (val === null) return;
+    const num = parseInt(val);
+    if (isNaN(num) || num < 2 || num > n) return;
+    state.activeMajors = Array.from({length: num}, (_, i) => i);
+    state.selectedCell = null;
+    hideDetail();
+    renderMajorToggles();
+    renderHeatmap();
+  });
+  $quickSelect.appendChild(customBtn);
+
+  // None button
   const noneBtn = document.createElement('button');
   noneBtn.className = 'quick-btn';
   noneBtn.textContent = 'None';
   noneBtn.addEventListener('click', () => {
     state.activeMajors = [0, 1];
     state.selectedCell = null;
+    hideDetail();
     renderMajorToggles();
     renderHeatmap();
   });
@@ -1001,6 +1068,7 @@ async function switchDomain(domain) {
 
   $loading.style.display = 'none';
 
+  renderPaletteToggle();
   renderMetricChips();
   renderMajorToggles();
   renderHeatmap();
