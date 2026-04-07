@@ -410,10 +410,10 @@
     font-weight: 600;
     color: var(--text-muted);
     overflow: hidden;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
-    padding: 2px 0;
+    white-space: nowrap;
+    transform: rotate(-45deg);
+    transform-origin: left bottom;
+    padding: 0;
     line-height: 1.1;
   }
 
@@ -769,7 +769,7 @@ function renderHeatmap() {
   else if (n > 10) fontSize = '9px';
   else fontSize = '10px';
 
-  const colLabelHeight = labelWidth; // rotate 90°, so height = labelWidth
+  const colLabelHeight = n > 15 ? 45 : 60; // space for -45deg rotated labels
 
   // Build grid: (n+1) cols × (n+1) rows
   // col 0: row labels (width=labelWidth), cols 1..n: cells (width=cellSize)
