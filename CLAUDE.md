@@ -9,11 +9,14 @@ ASEE 2026 conference paper analyzing interdisciplinary overlap between STEM doma
 ## Build/Render
 
 ```bash
-quarto render index.qmd        # Render the main analysis document to IEEE PDF
-quarto render asee_wip.qmd     # Render the WIP paper
+quarto render analysis/index.qmd   # Render the main analysis document to IEEE PDF
 ```
 
 Output: IEEE-formatted PDF, heatmap PNGs, and similarity metrics JSON files. The `_freeze/` directory caches R code execution results.
+
+## Interactive Explorer
+
+Live at https://ransomts.github.io/ASEE-2026/ — deployed via GitHub Pages from `site/`. The `site/qrcode.png` links to this URL for the conference poster.
 
 ## Tech Stack
 
@@ -22,13 +25,24 @@ Output: IEEE-formatted PDF, heatmap PNGs, and similarity metrics JSON files. The
 - **Core R packages**: `data.table` (primary data manipulation), `lsa` (cosine similarity), `pheatmap` (heatmaps), `jsonlite` (export), `tidyverse`/`stringr` (string processing)
 - **LaTeX** via `pdflatex` for PDF generation
 
-## Key Files
+## Directory Structure
 
-- `index.qmd` — Main analysis document with all R code: data loading, metric computation, heatmap generation, and JSON export
-- `asee_wip.qmd` — WIP paper shell (references generated heatmap images)
-- `asee_wip.org` — Org-mode version of the paper prose (introduction, methodology, results, discussion)
-- `bibliography.bib` — Citations (natbib)
-- `data/` — MIDFIELD dataset: `degree_*.csv.gz`, `course_*.csv.gz`, `student_*.csv.gz`, `term_*.csv.gz`, `cip_codes.csv.gz`
+```
+paper/              — WIP paper prose, bibliography, reviews, presentation
+  asee_wip.org      — Org-mode paper source
+  asee_wip.pdf      — Compiled PDF
+  bibliography.bib  — Citations
+analysis/           — R pipeline and outputs
+  index.qmd         — Main analysis (data loading, metrics, heatmaps, JSON export)
+  make_heatmaps.R   — Standalone heatmap script
+  heatmaps/         — Generated heatmap PNGs
+  metrics/          — Similarity metrics JSON files
+site/               — Interactive explorer (GitHub Pages)
+  index.html        — Single-page app
+  data/             — Pre-computed JSON with metrics, course counts, dendrograms
+  qrcode.png        — QR code for conference poster
+data/               — MIDFIELD source data (gitignored, restricted)
+```
 
 ## Architecture
 
