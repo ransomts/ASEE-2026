@@ -465,6 +465,106 @@
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     DESKTOP LAYOUT (>= 768px): sidebar instead of drawer
+     ══════════════════════════════════════════════════════════════════════════ */
+  @media (min-width: 768px) {
+    body {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      grid-template-rows: auto auto auto 1fr;
+      min-height: 100vh;
+      overflow: visible;
+    }
+
+    #header {
+      grid-column: 1 / -1;
+      position: static;
+    }
+
+    #domain-bar {
+      grid-column: 1 / -1;
+    }
+
+    #metric-indicator {
+      grid-column: 1 / -1;
+    }
+
+    #main {
+      grid-column: 1;
+      grid-row: 4;
+      padding: 16px;
+      padding-bottom: 16px;
+      overflow: auto;
+    }
+
+    /* Drawer becomes sidebar */
+    #drawer {
+      grid-column: 2;
+      grid-row: 4;
+      position: static;
+      transform: none !important;
+      max-height: none;
+      border-radius: 0;
+      box-shadow: none;
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+    }
+
+    #drawer-handle { display: none; }
+    #drawer-overlay { display: none !important; }
+
+    /* These are moved by JS on desktop, but keep them out of the grid */
+    body > #detail-panel,
+    body > #drawer-overlay {
+      grid-column: 1 / -1;
+      grid-row: -1;
+    }
+
+    #drawer-content {
+      padding: 12px 16px 16px;
+    }
+
+    /* Detail panel inline in sidebar instead of fixed overlay */
+    #detail-panel {
+      position: static !important;
+      bottom: auto !important;
+      left: auto !important;
+      right: auto !important;
+      max-height: none !important;
+      border-radius: 8px;
+      box-shadow: none;
+      margin: 12px 16px;
+      animation: none !important;
+    }
+
+    #detail-panel.visible {
+      display: block;
+      animation: none;
+    }
+
+    /* Legend can be wider */
+    #legend {
+      max-width: 600px;
+    }
+
+    /* Metric chips can wrap more */
+    .metric-chip {
+      font-size: 13px;
+      padding: 5px 10px;
+    }
+
+    .major-toggle {
+      font-size: 12px;
+      padding: 4px 10px;
+    }
+
+    .quick-btn {
+      font-size: 13px;
+      padding: 5px 12px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -515,12 +615,16 @@
 <!-- Drawer overlay -->
 <div id="drawer-overlay"></div>
 
-<!-- Bottom drawer -->
+<!-- Bottom drawer (mobile) / Sidebar (desktop) -->
 <div id="drawer">
   <div id="drawer-handle">
     <div id="drawer-handle-bar"></div>
     <div id="drawer-handle-label">Controls</div>
   </div>
+
+  <!-- Detail panel gets moved here by JS on desktop -->
+  <div id="detail-slot"></div>
+
   <div id="drawer-content">
     <div class="drawer-section-title">Metric</div>
     <div id="metric-chips"></div>
@@ -707,7 +811,12 @@ const $domainPills = document.querySelectorAll('.domain-pill');
 // ─── Drawer ───────────────────────────────────────────────────────────────────
 let drawerExpanded = false;
 
+function isDesktop() {
+  return window.matchMedia('(min-width: 768px)').matches;
+}
+
 function setDrawer(expanded) {
+  if (isDesktop()) return; // sidebar always visible on desktop
   drawerExpanded = expanded;
   $drawer.classList.toggle('expanded', expanded);
   $drawerOverlay.classList.toggle('visible', expanded);
@@ -847,6 +956,18 @@ function hideDetail() {
 
 function setupDetail() {
   $detailClose.addEventListener('click', hideDetail);
+  // Move detail panel into sidebar on desktop, back to body on mobile
+  const detailSlot = document.getElementById('detail-slot');
+  function positionDetailPanel() {
+    if (isDesktop()) {
+      detailSlot.appendChild($detailPanel);
+    } else if ($detailPanel.parentNode !== document.body) {
+      // Move back before drawer-overlay
+      document.body.insertBefore($detailPanel, $drawerOverlay);
+    }
+  }
+  positionDetailPanel();
+  window.addEventListener('resize', positionDetailPanel);
 }
 
 // ─── Heatmap rendering ────────────────────────────────────────────────────────
