@@ -1,7 +1,35 @@
+# R
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+renv/
 
+# Quarto
 /.quarto/
 **/*.quarto_ipynb
+_freeze/
+*_cache/
+
+# LaTeX intermediates
+*.aux
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.log
+*.out
+*.synctex.gz
+*.tex
+auto/
+
+# Templates / examples
+template.*
+template_files/
+david-folio.png
+fig1.png
+examples/
+
+# Scratch / duplicates
+ASEE_2026.qmd
+asee_wip.qmd

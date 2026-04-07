@@ -1,0 +1,93 @@
+#+TITLE: ASEE 2026
+
+* Tim & Stephanie photos and emails
+
+Headshot: https://drive.google.com/file/d/1yr3bZfvbpJze9KnsxP7Ml8WeurXiKM8z/view?usp=sharing 
+Feel free to crop
+damas@umich.edu
+Program Assistant of Anti-Racism Research 
+Phillip J. Bowman Center for Scholarship to Practice
+University of Michigan 
+
+
+* Intro & Context
+
+** Multidisciplinary motivation and framing
+- KSAs
+- +Notes about big ten ideas+
+- Convergence research
+
+** What is MIDFIELD
+
+- Data profile
+- What our data scope is
+
+** contribution to the field
+
+Student enrollment as an expression of agency within their major and expression of interest in interdisciplinary topics
+	Shifting unit of analysis from student pathways to program relationships
+
+- Complementary similarity metrics to enrollment vectors
+- Defining interpretable relationship types
+- Nested, parallel, convergent (to be diucussed further in methodology section
+- Extend curricular analytics across disciplinary boundaries
+
+** research question
+
+RQ:  What types of curricular relationships have emerged between undergraduate STEM programs as evidenced by student enrollment patterns?
+
+* methodology
+
+
+** what is data clustering
+- unsupervised machine learning
+- latent feature detection
+
+** what are similarity metrics
+
+- Jaccard
+- Tf-idf (cosine)
+- overlap 
+- Pmi
+- Kulczynski
+
+** our defined relationships between programs
+
+- nested
+- parallel
+- convergent
+
+** given columns, given rows, here's the table
+
+#+CAPTION: Metric signatures for three curricular relationship types. High/Low are relative to other pairs within the same domain.
+#+LABEL: tab:taxonomy
+#+ATTR_LATEX: :align lccccl
+| Type        | Jaccard | TF-IDF | Overlap | PMI  | Example                |
+|-------------+---------+--------+---------+------+------------------------|
+| Nested      | Low     | Low    | High    | Var. | IT \subset CS          |
+| Parallel    | Med     | Low    | Med     | Low  | EE \parallel Civil Eng |
+| Convergent  | High    | High   | High    | High | Aero \approx Ind Eng   |
+
+* results
+
+** computing parallel
+
+** computing nested
+
+** computing convergent
+
+** overall stem comparison
+
+figure 1 from the writeup
+
+** QR code to interactive page showing data
+
+* Wrap up
+
+** future work
+
+- Disaggregating required from elective coursework
+- Time series analysis to see curriculum evolution
+- Institutional classification
+
+** contact info

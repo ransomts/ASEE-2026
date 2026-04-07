@@ -1,0 +1,811 @@
+---
+title: "Your IEEE Paper Title Here"
+classoption: [onecolumn]  # <--- Add this line here
+format:
+  ieee-pdf:
+    keep-tex: true  # Optional: keeps the raw .tex file for debugging
+execute:
+  cache: true
+author:
+  - name: "Your Name"
+    affiliations:
+      - name: "Pop!_OS University"
+        department: "Department of Data Science"
+        city: "Pendleton"
+        country: "USA"
+    email: "user@example.com"
+    attributes:
+      corresponding: true
+  - name: "Co-Author Name"
+    affiliations:
+      - name: "Another Institute"
+abstract: |
+  This is the abstract of your paper. It should be a concise summary of your research, methodology, and results.
+keywords: [Quarto, RStudio, IEEE, Linux]
+bibliography: bibliography.bib
+cite-method: natbib
+---
+
+
+```{r}
+library(data.table)
+library(tidyverse)
+library(pheatmap)
+library(lsa) 
+setDTthreads(0) 
+
+# --- METRIC CONFIGURATION FLAGS ---
+run_jaccard    <- TRUE
+run_tfidf      <- TRUE
+run_overlap    <- TRUE
+run_dice       <- TRUE
+run_kulczynski <- TRUE
+run_pmi        <- TRUE
+run_maxscale   <- TRUE
+
+```
+
+Executive Summary
+This document expands the similarity analysis between majors by introducing advanced metrics. While Jaccard and Cosine are standard, they often over-represent "Gen-Ed" overlap (e.g., almost every STEM student taking Calculus I).By adding TF-IDF and Overlap Coefficients, we can better isolate the unique curricular bonds between majors.
+
+# Data Loading and Preparation
+
+```{r}
+degree_path <- "data/degree_2020_03_16_fix9a.csv"
+course_path <- "data/course_2020_03_16_fix9a.csv"
+
+degree_dt <- fread(degree_path, select = c("mcid", "cip6", "degree"))
+# Pad to 6 digits to preserve leading zeros (e.g., CIP 04.0401 → "040401" not "40401")
+degree_dt[, cip6 := str_pad(as.character(cip6), width = 6, side = "left", pad = "0")]
+
+course_dt <- fread(course_path, select = c("mcid", "abbrev", "number"))
+
+# --- HEURISTICS: COURSE NAME NORMALIZATION ---
+# 1. Standardization: Uppercase and Trim
+course_dt[, abbrev := str_to_upper(str_trim(abbrev))]
+course_dt[, number := str_to_upper(str_trim(number))]
+
+# 2. Leading Zeros: Remove '0' from start of numbers (e.g., '0101' -> '101')
+course_dt[, number := str_remove(number, "^0+")]
+
+# 3. Suffix Stripping: Remove trailing single letters (e.g., '101H' -> '101', '400W' -> '400')
+# This groups Honors (H), Writing (W), or Sequence (A/B) variants with the parent course.
+course_dt[, number_clean := str_remove(number, "[A-Z]$")]
+
+# 4. Construct Unified ID
+course_dt[, course_id := paste(abbrev, number_clean)]
+# ---------------------------------------------
+
+valid_mcids <- intersect(degree_dt$mcid, course_dt$mcid)
+degree_dt <- degree_dt[mcid %in% valid_mcids]
+course_dt <- course_dt[mcid %in% valid_mcids]
+
+
+```
+
+# Vectorization and Aggregation
+
+```{r}
+combined_dt <- merge(degree_dt[, .(mcid, cip6)], 
+                    course_dt[, .(mcid, course_id)], 
+                    by = "mcid")
+
+# Count total graduates per major to use for normalization
+major_sizes <- degree_dt[, .(total_grads = uniqueN(mcid)), by = cip6]
+
+# Count frequency of courses per major
+major_course_weights <- combined_dt[, .(student_count = .N), by = .(cip6, course_id)]
+
+# Add probability (percentage of students in major who took course) to normalize for major size
+major_course_weights <- merge(major_course_weights, major_sizes, by = "cip6")
+major_course_weights[, prob_taken := student_count / total_grads]
+
+# Max-scaling: weight relative to the most popular course in THAT major
+major_course_weights[, max_scaled := student_count / max(student_count), by = cip6]
+
+# Unique list of courses per major
+major_course_sets <- combined_dt[, .(course_set = list(unique(course_id))), by = cip6]
+
+# Ensure 1:1 CIP-to-Degree mapping for labels
+degree_names_map <- unique(degree_dt[, .(cip6, degree)])
+degree_names_map <- degree_names_map[, .(degree = first(degree)), by = cip6]
+setkey(degree_names_map, cip6)
+
+rm(combined_dt)
+gc()
+
+```
+
+
+# Advanced Metrics Calculation
+
+```{r}
+# --- CIP Group Definitions ---
+cips_to_compare <- c(
+  "110101", "110701", # Computing
+  "140901", "140903", # Computer Eng
+  "400601", "143901", # Geo/Geol Eng
+  "260101", "260202", # Bio/Biochem
+  "141901", "141001", # Mech/Elec Eng
+  "270101", "400801"  # Math/Physics
+)
+
+# 1. TF-IDF Cosine
+tfidf_sim <- NULL
+if (run_tfidf) {
+  subset_weights <- major_course_weights[cip6 %in% cips_to_compare]
+  dtm <- dcast(subset_weights, cip6 ~ course_id, value.var = "prob_taken", fill = 0)
+  cip_labels_cos <- as.character(dtm$cip6)
+  dtm_matrix <- as.matrix(dtm[, -1])
+  tf <- dtm_matrix 
+  idf <- log(nrow(dtm_matrix) / (colSums(dtm_matrix > 0) + 1))
+  tfidf_matrix <- t(t(tf) * idf)
+  # Multiply by 100 to convert to percentage
+  tfidf_sim <- lsa::cosine(t(tfidf_matrix)) * 100
+  
+  labels_tfidf <- degree_names_map[cip_labels_cos, degree]
+  if(any(is.na(labels_tfidf))) labels_tfidf[is.na(labels_tfidf)] <- cip_labels_cos[is.na(labels_tfidf)]
+  colnames(tfidf_sim) <- labels_tfidf; rownames(tfidf_sim) <- labels_tfidf
+}
+
+# 2. Max-Scaled Cosine
+maxscale_sim <- NULL
+if (run_maxscale) {
+  subset_weights <- major_course_weights[cip6 %in% cips_to_compare]
+  dtm_max <- dcast(subset_weights, cip6 ~ course_id, value.var = "max_scaled", fill = 0)
+  cip_labels_max <- as.character(dtm_max$cip6)
+  # Multiply by 100 to convert to percentage
+  maxscale_sim <- lsa::cosine(t(as.matrix(dtm_max[, -1]))) * 100
+  
+  labels_max <- degree_names_map[cip_labels_max, degree]
+  colnames(maxscale_sim) <- labels_max; rownames(maxscale_sim) <- labels_max
+}
+
+# 3. PMI (Pointwise Mutual Information) Similarity
+pmi_sim <- NULL
+if (run_pmi) {
+  subset_weights <- major_course_weights[cip6 %in% cips_to_compare]
+  total_n <- sum(subset_weights$student_count)
+  p_major <- subset_weights[, .(p_m = sum(student_count)/total_n), by = cip6]
+  p_course <- subset_weights[, .(p_c = sum(student_count)/total_n), by = course_id]
+  
+  pmi_data <- merge(subset_weights, p_major, by = "cip6")
+  pmi_data <- merge(pmi_data, p_course, by = "course_id")
+  pmi_data[, pmi := log2((student_count/total_n) / (p_m * p_c))]
+  pmi_data[pmi < 0, pmi := 0] # Use Positive PMI
+  
+  dtm_pmi <- dcast(pmi_data, cip6 ~ course_id, value.var = "pmi", fill = 0)
+  cip_labels_pmi <- as.character(dtm_pmi$cip6)
+  # Multiply by 100 to convert to percentage
+  pmi_sim <- lsa::cosine(t(as.matrix(dtm_pmi[, -1]))) * 100
+  
+  labels_pmi <- degree_names_map[cip_labels_pmi, degree]
+  colnames(pmi_sim) <- labels_pmi; rownames(pmi_sim) <- labels_pmi
+}
+
+# 4. Binary Set Metrics
+metrics_results <- NULL
+if (run_jaccard | run_overlap | run_dice | run_kulczynski) {
+  subset_sets <- major_course_sets[cip6 %in% cips_to_compare]
+  metrics_results <- CJ(cip_a = cips_to_compare, cip_b = cips_to_compare)
+
+  calc_metrics <- function(c1, c2) {
+    set_a <- unlist(subset_sets[cip6 == c1, course_set]); set_b <- unlist(subset_sets[cip6 == c2, course_set])
+    if(length(set_a) == 0 | length(set_b) == 0) return(list(jaccard = 0, overlap = 0, dice = 0, kulczynski = 0))
+    inter <- length(intersect(set_a, set_b)); n_a <- length(set_a); n_b <- length(set_b)
+    # Binary metrics multiplied by 100
+    return(list(jaccard = 100 * (inter / length(union(set_a, set_b))), 
+                overlap = 100 * (inter / min(n_a, n_b)),
+                dice = 100 * ((2 * inter) / (n_a + n_b)), 
+                kulczynski = 100 * (0.5 * ((inter / n_a) + (inter / n_b)))))
+  }
+
+  m_res <- mapply(calc_metrics, metrics_results$cip_a, metrics_results$cip_b, SIMPLIFY = FALSE)
+  metrics_results[, jaccard := sapply(m_res, `[[`, "jaccard")]
+  metrics_results[, overlap := sapply(m_res, `[[`, "overlap")]
+  metrics_results[, dice := sapply(m_res, `[[`, "dice")]
+  metrics_results[, kulczynski := sapply(m_res, `[[`, "kulczynski")]
+}
+
+```
+
+
+# Metric Comparison
+
+```{r}
+clean_lab <- function(x) str_wrap(str_remove(x, "Bachelor of Science in "), 25)
+
+format_mat <- function(res_dt, var) {
+  mat <- dcast(res_dt, cip_a ~ cip_b, value.var = var)
+  current_cips <- as.character(mat$cip_a); labels <- degree_names_map[current_cips, degree]
+  if(any(is.na(labels))) labels[is.na(labels)] <- current_cips[is.na(labels)]
+  m <- as.matrix(mat[, -1]); rownames(m) <- labels; colnames(m) <- labels
+  return(m)
+}
+
+if (run_jaccard && !is.null(metrics_results)) {
+  jac_m <- format_mat(metrics_results, "jaccard")
+  pheatmap(jac_m, labels_row = clean_lab(rownames(jac_m)), labels_col = clean_lab(colnames(jac_m)),
+           display_numbers = TRUE, number_format = "%.0f", main = "Jaccard Index (Binary Overlap)", fontsize = 9,
+           color = colorRampPalette(c("white", "#feedde", "#fd8d3c"))(100))
+}
+
+if (run_tfidf && !is.null(tfidf_sim)) {
+  pheatmap(tfidf_sim, labels_row = clean_lab(rownames(tfidf_sim)), labels_col = clean_lab(colnames(tfidf_sim)),
+           display_numbers = TRUE, number_format = "%.0f", main = "TF-IDF Cosine (Specific Curricular Bonds)", fontsize = 9,
+           color = colorRampPalette(c("white", "#f7fbff", "#08306b"))(100))
+}
+
+if (run_maxscale && !is.null(maxscale_sim)) {
+  pheatmap(maxscale_sim, labels_row = clean_lab(rownames(maxscale_sim)), labels_col = clean_lab(colnames(maxscale_sim)),
+           display_numbers = TRUE, number_format = "%.0f", main = "Max-Scaled Cosine (Internal Core)", fontsize = 9,
+           color = colorRampPalette(c("white", "#f7fcf0", "#4eb3d3"))(100))
+}
+
+if (run_pmi && !is.null(pmi_sim)) {
+  pheatmap(pmi_sim, labels_row = clean_lab(rownames(pmi_sim)), labels_col = clean_lab(colnames(pmi_sim)),
+           display_numbers = TRUE, number_format = "%.0f", main = "PMI Similarity (Signature Bonds)", fontsize = 9,
+           color = colorRampPalette(c("white", "#fff7bc", "#d95f0e"))(100))
+}
+
+if (run_overlap && !is.null(metrics_results)) {
+  ovl_m <- format_mat(metrics_results, "overlap")
+  pheatmap(ovl_m, labels_row = clean_lab(rownames(ovl_m)), labels_col = clean_lab(colnames(ovl_m)),
+           display_numbers = TRUE, number_format = "%.0f", main = "Overlap Coefficient (Subset Detection)", fontsize = 9,
+           color = colorRampPalette(c("white", "#e5f5e0", "#31a354"))(100))
+}
+
+if (run_dice && !is.null(metrics_results)) {
+  dice_m <- format_mat(metrics_results, "dice")
+  pheatmap(dice_m, labels_row = clean_lab(rownames(dice_m)), labels_col = clean_lab(colnames(dice_m)),
+           display_numbers = TRUE, number_format = "%.0f", main = "Dice Similarity (Intersection Weighting)", fontsize = 9,
+           color = colorRampPalette(c("white", "#f2f0f7", "#6a51a3"))(100))
+}
+
+if (run_kulczynski && !is.null(metrics_results)) {
+  kul_m <- format_mat(metrics_results, "kulczynski")
+  pheatmap(kul_m, labels_row = clean_lab(rownames(kul_m)), labels_col = clean_lab(colnames(kul_m)),
+           display_numbers = TRUE, number_format = "%.0f", main = "Kulczynski Similarity (Mutual Resemblance)", fontsize = 9,
+           color = colorRampPalette(c("white", "#fff5f0", "#cb181d"))(100))
+}
+
+
+```
+# Curricular Similarity Metrics
+
+## 1. Jaccard Index (Binary Overlap)
+- **Logic**: The size of the intersection divided by the size of the union.
+  $$J(A, B) = \frac{|A \cap B|}{|A \cup B|}$$
+- **Reflection on Data**: This is the baseline "breadth" metric. In the MIDFIELD dataset, it reflects the total shared curriculum. However, because it treats every course taken by even one student as a set member, it can be easily "diluted" by rare electives, often resulting in lower scores for very large or diverse departments.
+
+## 2. TF-IDF Cosine (Specific Curricular Bonds)
+- **Logic**: Weights courses based on their "specificity." A course like *Calculus I* (taken by many majors) gets low weight, while *Advanced Microcontrollers* (unique to a few) gets high weight.
+  $$\text{Cosine Similarity} = \frac{\mathbf{v}_A \cdot \mathbf{v}_B}{\|\mathbf{v}_A\| \|\mathbf{v}_B\|}$$
+- **Reflection on Data**: This metric effectively filters out the "STEM background noise." It highlights the specialized technical requirements that truly define a major's identity. It is highly resistant to major size because it uses normalized frequencies.
+
+## 3. Overlap Coefficient (Subset Detection)
+- **Logic**: Intersection size divided by the size of the smaller set.
+  $$\text{Overlap}(A, B) = \frac{|A \cap B|}{\min(|A|, |B|)}$$
+- **Reflection on Data**: Excellent for identifying "nested" curricula. For example, if Software Engineering students take almost everything Computer Science students take, but the CS students have a much broader elective set, the Overlap Coefficient will stay high while Jaccard drops. It reveals if one major is effectively a component of another.
+
+## 4. PMI Similarity (Signature Bonds)
+- **Logic**: Pointwise Mutual Information measures if a course-major pairing occurs more often than would be expected if they were independent.
+  $$\text{PMI}(m, c) = \log \left( \frac{p(m, c)}{p(m)p(c)} \right)$$
+- **Reflection on Data**: This is the most sensitive metric for "signature" behaviors. It reflects the courses that students are surprised to be in unless they are in that specific major. It is great for distinguishing between two very similar-sounding engineering programs.
+
+## 5. Max-Scaled Cosine (Internal Core)
+- **Logic**: Normalizes all course counts relative to the single most popular course within that major.
+  $$x_{scaled} = \frac{x}{\max(\mathbf{x}_{major})}$$
+- **Reflection on Data**: This reflects the "standard experience" of a major. By scaling everything to the major's own "anchor" course, it removes the effect of different graduation rates and focuses purely on the internal structure of what a "typical" student takes.
+
+## 6. Dice Similarity (Intersection Weighting)
+- **Logic**: Twice the intersection divided by the sum of the set sizes.
+  $$\text{Dice}(A, B) = \frac{2 |A \cap B|}{|A| + |B|}$$
+- **Reflection on Data**: Similar to Jaccard but gives more credit to the shared courses. It is less sensitive to the total variety of electives (the union) and more focused on the core intersection.
+
+## 7. Kulczynski Similarity (Mutual Resemblance)
+- **Logic**: The average of the two inclusion proportions (Intersection/A and Intersection/B).
+  $$\text{Kulczynski}(A, B) = \frac{1}{2} \left( \frac{|A \cap B|}{|A|} + \frac{|A \cap B|}{|B|} \right)$$
+- **Reflection on Data**: Reflects the average confidence that a student from one major would "fit" in the other. It is very robust when comparing a very large major to a small, specialized one.
+
+# consolidated
+
+```{r}
+#| label: unified-stem-analysis
+#| fig-cap: "Dynamic Curricular Similarity Analysis"
+#| fig-height: 12
+#| fig-width: 12
+
+# ==========================================
+# 1. CONFIGURATION (EDIT THIS SECTION)
+#Options: "computing", "engineering", "sciences", "interdisciplinary"
+analysis_mode <- "interdisciplinary" 
+
+# Restrict to top N majors (ignored for "interdisciplinary" or fixed lists)
+n_top_limit <- 25 
+# ==========================================
+
+
+# --- SELECTION LOGIC ---
+target_cips <- NULL
+chart_title_prefix <- ""
+
+# Get all valid CIPS from dataset
+all_cips <- unique(major_course_weights$cip6)
+
+if (analysis_mode == "computing") {
+  # DHS Computing List
+  target_cips <- c(
+    "110101", "110102", "110103", "110104", "110199", "110201", "110202", "110203",
+    "110299", "110401", "110501", "110701", "110801", "110802", "110803",
+    "110804", "110899", "110901", "111001", "111002", "111003", "111004", "111005",
+    "111006", "111099", "140900", "140901", "140902", "140903", "140999", "151201",
+    "151202", "151203", "151204", "151299", "151301"
+  )
+  chart_title_prefix <- "Computing"
+  
+} else if (analysis_mode == "engineering") {
+  # Engineering (14) + Eng Tech (15)
+  matches <- grep("^(14|15)", all_cips, value = TRUE)
+  # Sort by size and take Top N
+  pop_table <- major_sizes[cip6 %in% matches]
+  setorder(pop_table, -total_grads)
+  target_cips <- head(pop_table$cip6, n_top_limit)
+  chart_title_prefix <- "Engineering"
+
+} else if (analysis_mode == "sciences") {
+  # Bio(26), Math(27), Phys(40), Inter(30), Ag(01), NatRes(03)
+  matches <- grep("^(26|27|40|30|01|03)", all_cips, value = TRUE)
+  pop_table <- major_sizes[cip6 %in% matches]
+  setorder(pop_table, -total_grads)
+  target_cips <- head(pop_table$cip6, n_top_limit)
+  chart_title_prefix <- "Sciences"
+
+} else if (analysis_mode == "interdisciplinary") {
+  # One Representative from each branch
+  target_cips <- c(
+    "110701", # CS
+    "141901", # Mech Eng
+    "260101", # Bio
+    "270101", # Math
+    "400801", # Physics
+    "400601"  # Geology
+  )
+  chart_title_prefix <- "STEM Branches"
+}
+
+# Filter to only CIPS that actually exist in the data
+valid_cips <- intersect(target_cips, all_cips)
+
+if(length(valid_cips) < 2) {
+  stop(paste("Not enough majors found for mode:", analysis_mode))
+}
+
+# --- DATA SUBSETTING ---
+subset_weights <- major_course_weights[cip6 %in% valid_cips]
+subset_sets    <- major_course_sets[cip6 %in% valid_cips]
+
+
+# --- METRIC CALCULATIONS ---
+
+# 1. TF-IDF
+dtm <- dcast(subset_weights, cip6 ~ course_id, value.var = "prob_taken", fill = 0)
+mat <- as.matrix(dtm[, -1])
+idf <- log(nrow(mat) / (colSums(mat > 0) + 1))
+tfidf_mat <- t(t(mat) * idf)
+sim_tfidf <- lsa::cosine(t(tfidf_mat)) * 100
+rownames(sim_tfidf) <- dtm$cip6; colnames(sim_tfidf) <- dtm$cip6
+
+# 2. Max-Scaled Cosine
+dtm_max <- dcast(subset_weights, cip6 ~ course_id, value.var = "max_scaled", fill = 0)
+sim_max <- lsa::cosine(t(as.matrix(dtm_max[, -1]))) * 100
+rownames(sim_max) <- dtm_max$cip6; colnames(sim_max) <- dtm_max$cip6
+
+# 3. PMI Similarity
+total_n <- sum(subset_weights$student_count)
+p_major <- subset_weights[, .(p_m = sum(student_count)/total_n), by = cip6]
+p_course <- subset_weights[, .(p_c = sum(student_count)/total_n), by = course_id]
+pmi_dt <- merge(subset_weights, p_major, by = "cip6")
+pmi_dt <- merge(pmi_dt, p_course, by = "course_id")
+pmi_dt[, pmi := log2((student_count/total_n) / (p_m * p_c))]
+pmi_dt[pmi < 0, pmi := 0]
+dtm_pmi <- dcast(pmi_dt, cip6 ~ course_id, value.var = "pmi", fill = 0)
+sim_pmi <- lsa::cosine(t(as.matrix(dtm_pmi[, -1]))) * 100
+rownames(sim_pmi) <- dtm_pmi$cip6; colnames(sim_pmi) <- dtm_pmi$cip6
+
+# 4. Set-Based Metrics (Jaccard, Overlap, Dice, Kulczynski)
+pairs <- CJ(cip_a = valid_cips, cip_b = valid_cips)
+
+calc_metrics <- function(c1, c2) {
+  set_a <- unlist(subset_sets[cip6 == c1, course_set])
+  set_b <- unlist(subset_sets[cip6 == c2, course_set])
+  if(length(set_a) == 0 | length(set_b) == 0) return(list(j=0, o=0, d=0, k=0))
+  
+  inter <- length(intersect(set_a, set_b))
+  n_a <- length(set_a); n_b <- length(set_b)
+  
+  return(list(
+    j = 100 * (inter / length(union(set_a, set_b))),
+    o = 100 * (inter / min(n_a, n_b)),
+    d = 100 * ((2 * inter) / (n_a + n_b)),
+    k = 100 * (0.5 * ((inter / n_a) + (inter / n_b)))
+  ))
+}
+
+res_list <- mapply(calc_metrics, pairs$cip_a, pairs$cip_b, SIMPLIFY = FALSE)
+pairs[, jaccard := sapply(res_list, `[[`, "j")]
+pairs[, overlap := sapply(res_list, `[[`, "o")]
+pairs[, dice := sapply(res_list, `[[`, "d")]
+pairs[, kulczynski := sapply(res_list, `[[`, "k")]
+
+to_mat <- function(d, v) {
+  m_d <- dcast(d, cip_a ~ cip_b, value.var = v)
+  m <- as.matrix(m_d[, -1]); rownames(m) <- m_d$cip_a
+  return(m)
+}
+
+sim_jac <- to_mat(pairs, "jaccard")
+sim_ovl <- to_mat(pairs, "overlap")
+sim_dice <- to_mat(pairs, "dice")
+sim_kul <- to_mat(pairs, "kulczynski")
+
+
+# --- PLOTTING ---
+get_smart_label <- function(cip) {
+  # Special overrides for Interdisciplinary mode for clarity
+  if (analysis_mode == "interdisciplinary") {
+    map <- c("110701"="CS", "141901"="MechEng", "260101"="Bio", "270101"="Math", "400801"="Physics", "400601"="Geology")
+    if (cip %in% names(map)) return(map[cip])
+  }
+  
+  # Standard Map Lookup
+  if(exists("degree_names_map")) {
+    local <- degree_names_map[cip6 == cip, degree]
+    if(length(local) > 0 && !is.na(local)) return(local[1])
+  }
+  # Global STEM List Lookup
+  if(exists("stem_cip_names") && cip %in% names(stem_cip_names)) {
+    return(stem_cip_names[cip])
+  }
+  return(cip)
+}
+
+plot_hm <- function(mat, metric_name, pal) {
+  if(is.null(mat) || nrow(mat) < 2) return(NULL)
+  
+  r_lab <- sapply(rownames(mat), get_smart_label)
+  c_lab <- sapply(colnames(mat), get_smart_label)
+  clean <- function(x) str_wrap(str_remove(x, "Bachelor of Science in "), 18)
+  
+  # Dynamic font size based on matrix size
+  f_size <- if(nrow(mat) > 20) 7 else 9
+  
+  pheatmap(mat, 
+           labels_row = clean(r_lab), labels_col = clean(c_lab),
+           display_numbers = TRUE, number_format = "%.0f", 
+           main = paste(chart_title_prefix, ":", metric_name), 
+           fontsize = f_size, color = pal)
+}
+
+# Generate All Plots
+plot_hm(sim_jac, "Jaccard (Curricular Width)", colorRampPalette(c("white", "#feedde", "#fd8d3c"))(100))
+plot_hm(sim_tfidf, "TF-IDF (Specialized Identity)", colorRampPalette(c("white", "#deebf7", "#08306b"))(100))
+plot_hm(sim_ovl, "Overlap (Subset Relations)", colorRampPalette(c("white", "#e5f5e0", "#31a354"))(100))
+plot_hm(sim_pmi, "PMI (Signature Bonds)", colorRampPalette(c("white", "#fff7bc", "#d95f0e"))(100))
+plot_hm(sim_max, "Max-Scaled (Core Structure)", colorRampPalette(c("white", "#f7fcf0", "#4eb3d3"))(100))
+plot_hm(sim_dice, "Dice (Intersection Weighted)", colorRampPalette(c("white", "#f2f0f7", "#6a51a3"))(100))
+plot_hm(sim_kul, "Kulczynski (Mutual Fit)", colorRampPalette(c("white", "#fff5f0", "#cb181d"))(100))
+
+# --- EXPORT TO JSON ---
+
+# 1. Create a readable label map for the JSON consumer
+# This allows the JSON to keep concise keys (CIPs) but provides human names
+cip_label_map <- sapply(valid_cips, function(x) {
+  # Clean up the label similar to the plot function
+  lbl <- get_smart_label(x)
+  str_remove(lbl, "Bachelor of Science in ")
+}, simplify = FALSE)
+
+# 2. Bundle all data
+export_data <- list(
+  metadata = list(
+    mode = analysis_mode,
+    top_limit = n_top_limit,
+    generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    description = "Pairwise similarity matrices for STEM curricula."
+  ),
+  labels = cip_label_map,
+  matrices = list(
+    jaccard = sim_jac,
+    tfidf = sim_tfidf,
+    overlap = sim_ovl,
+    pmi = sim_pmi,
+    max_scaled = sim_max,
+    dice = sim_dice,
+    kulczynski = sim_kul
+  )
+)
+
+# 3. Generate dynamic filename and save
+json_filename <- paste0("similarity_metrics_", analysis_mode, ".json")
+jsonlite::write_json(export_data, json_filename, pretty = TRUE, auto_unbox = TRUE)
+
+message(paste("Successfully exported metric data to:", json_filename))
+```
+
+## saving figures
+
+```{r}
+#| label: unified-stem-analysis-figures
+#| fig-cap: "Dynamic Curricular Similarity Analysis"
+#| fig-height: 7
+#| fig-width: 7
+
+# ==========================================
+# 1. CONFIGURATION (EDIT THIS SECTION)
+# Options: "computing", "engineering", "sciences", "interdisciplinary"
+analysis_mode <- "sciences" 
+
+# Restrict to top N majors (ignored for "interdisciplinary" or fixed lists)
+n_top_limit <- 10
+
+# Visualization Settings
+heatmap_font_size_normal <- 12  # For smaller matrices (<20 rows)
+heatmap_font_size_dense  <- 12   # For larger matrices (>=20 rows)
+heatmap_axis_font_size   <- 12   # Font size for row/column labels (set to NULL to use base size)
+# ==========================================
+
+
+# --- HELPER FUNCTIONS ---
+get_smart_label <- function(cip) {
+  # Special overrides for Interdisciplinary mode for clarity
+  if (analysis_mode == "interdisciplinary") {
+    map <- c("110701"="CS", "141901"="Mech Eng", "260101"="Bio", "270101"="Math", "400801"="Physics", "400601"="Geology")
+    if (cip %in% names(map)) return(map[cip])
+  }
+  
+  # Standard Map Lookup
+  if(exists("degree_names_map")) {
+    local <- degree_names_map[cip6 == cip, degree]
+    if(length(local) > 0 && !is.na(local)) return(local[1])
+  }
+  # Global STEM List Lookup
+  if(exists("stem_cip_names") && cip %in% names(stem_cip_names)) {
+    return(stem_cip_names[cip])
+  }
+  return(cip)
+}
+
+
+# --- SELECTION LOGIC ---
+target_cips <- NULL
+chart_title_prefix <- ""
+
+# Get all valid CIPS from dataset
+all_cips <- unique(major_course_weights$cip6)
+
+if (analysis_mode == "computing") {
+  # DHS Computing List
+  target_cips <- c(
+    "110101", "110102", "110103", "110104", "110199", "110201", "110202", "110203",
+    "110299", "110401", "110501", "110701", "110801", "110802", "110803",
+    "110804", "110899", "110901", "111001", "111002", "111003", "111004", "111005",
+    "111006", "111099", "140900", "140901", "140902", "140903", "140999", "151201",
+    "151202", "151203", "151204", "151299", "151301"
+  )
+  chart_title_prefix <- "Computing"
+  
+} else if (analysis_mode == "engineering") {
+  # Engineering (14) + Eng Tech (15)
+  matches <- grep("^(14|15)", all_cips, value = TRUE)
+  # Sort by size and take Top N
+  pop_table <- major_sizes[cip6 %in% matches]
+  setorder(pop_table, -total_grads)
+  target_cips <- head(pop_table$cip6, n_top_limit)
+  chart_title_prefix <- "Engineering"
+
+} else if (analysis_mode == "sciences") {
+  # Bio(26), Math(27), Phys(40), Inter(30), Ag(01), NatRes(03)
+  matches <- grep("^(26|27|40|30|01|03)", all_cips, value = TRUE)
+  # Sort by size and take Top N
+  pop_table <- major_sizes[cip6 %in% matches]
+  setorder(pop_table, -total_grads)
+  target_cips <- head(pop_table$cip6, n_top_limit)
+  chart_title_prefix <- "Sciences"
+
+} else if (analysis_mode == "interdisciplinary") {
+  # One Representative from each branch
+  target_cips <- c(
+    "110701", # CS
+    "141901", # Mech Eng
+    "260101", # Bio
+    "270101", # Math
+    "400801", # Physics
+    "400601"  # Geology
+  )
+  chart_title_prefix <- "STEM Branches"
+}
+
+# 1. Intersect with data existence
+valid_cips <- intersect(target_cips, all_cips)
+
+# 2. Filter to only majors that have resolved names (exclude raw CIP codes)
+# We use get_smart_label; if it returns the input CIP, no name was found.
+valid_cips <- valid_cips[sapply(valid_cips, function(x) get_smart_label(x) != x)]
+
+if(length(valid_cips) < 2) {
+  stop(paste("Not enough NAMED majors found for mode:", analysis_mode))
+}
+
+# --- DATA SUBSETTING ---
+subset_weights <- major_course_weights[cip6 %in% valid_cips]
+subset_sets    <- major_course_sets[cip6 %in% valid_cips]
+
+
+# --- METRIC CALCULATIONS ---
+
+# 1. TF-IDF
+dtm <- dcast(subset_weights, cip6 ~ course_id, value.var = "prob_taken", fill = 0)
+mat <- as.matrix(dtm[, -1])
+idf <- log(nrow(mat) / (colSums(mat > 0) + 1))
+tfidf_mat <- t(t(mat) * idf)
+sim_tfidf <- lsa::cosine(t(tfidf_mat)) * 100
+rownames(sim_tfidf) <- dtm$cip6; colnames(sim_tfidf) <- dtm$cip6
+
+# 2. Max-Scaled Cosine
+dtm_max <- dcast(subset_weights, cip6 ~ course_id, value.var = "max_scaled", fill = 0)
+sim_max <- lsa::cosine(t(as.matrix(dtm_max[, -1]))) * 100
+rownames(sim_max) <- dtm_max$cip6; colnames(sim_max) <- dtm_max$cip6
+
+# 3. PMI Similarity
+total_n <- sum(subset_weights$student_count)
+p_major <- subset_weights[, .(p_m = sum(student_count)/total_n), by = cip6]
+p_course <- subset_weights[, .(p_c = sum(student_count)/total_n), by = course_id]
+pmi_dt <- merge(subset_weights, p_major, by = "cip6")
+pmi_dt <- merge(pmi_dt, p_course, by = "course_id")
+pmi_dt[, pmi := log2((student_count/total_n) / (p_m * p_c))]
+pmi_dt[pmi < 0, pmi := 0]
+dtm_pmi <- dcast(pmi_dt, cip6 ~ course_id, value.var = "pmi", fill = 0)
+sim_pmi <- lsa::cosine(t(as.matrix(dtm_pmi[, -1]))) * 100
+rownames(sim_pmi) <- dtm_pmi$cip6; colnames(sim_pmi) <- dtm_pmi$cip6
+
+# 4. Set-Based Metrics (Jaccard, Overlap, Dice, Kulczynski)
+pairs <- CJ(cip_a = valid_cips, cip_b = valid_cips)
+
+calc_metrics <- function(c1, c2) {
+  set_a <- unlist(subset_sets[cip6 == c1, course_set])
+  set_b <- unlist(subset_sets[cip6 == c2, course_set])
+  if(length(set_a) == 0 | length(set_b) == 0) return(list(j=0, o=0, d=0, k=0))
+  
+  inter <- length(intersect(set_a, set_b))
+  n_a <- length(set_a); n_b <- length(set_b)
+  
+  return(list(
+    j = 100 * (inter / length(union(set_a, set_b))),
+    o = 100 * (inter / min(n_a, n_b)),
+    d = 100 * ((2 * inter) / (n_a + n_b)),
+    k = 100 * (0.5 * ((inter / n_a) + (inter / n_b)))
+  ))
+}
+
+res_list <- mapply(calc_metrics, pairs$cip_a, pairs$cip_b, SIMPLIFY = FALSE)
+pairs[, jaccard := sapply(res_list, `[[`, "j")]
+pairs[, overlap := sapply(res_list, `[[`, "o")]
+pairs[, dice := sapply(res_list, `[[`, "d")]
+pairs[, kulczynski := sapply(res_list, `[[`, "k")]
+
+to_mat <- function(d, v) {
+  m_d <- dcast(d, cip_a ~ cip_b, value.var = v)
+  m <- as.matrix(m_d[, -1]); rownames(m) <- m_d$cip_a
+  return(m)
+}
+
+sim_jac <- to_mat(pairs, "jaccard")
+sim_ovl <- to_mat(pairs, "overlap")
+sim_dice <- to_mat(pairs, "dice")
+sim_kul <- to_mat(pairs, "kulczynski")
+
+
+# --- PLOTTING ---
+plot_hm <- function(mat, metric_name, pal, file_tag) {
+  if(is.null(mat) || nrow(mat) < 2) return(NULL)
+  
+  r_lab <- sapply(rownames(mat), get_smart_label)
+  c_lab <- sapply(colnames(mat), get_smart_label)
+  
+  # Clean and abbreviate labels
+  clean <- function(x) {
+    x <- str_remove(x, "Bachelor of Science in ")
+    x <- str_remove(x, "Bachelor Arts in ")
+    x <- str_replace_all(x, "Engineering", "Eng")
+    x <- str_replace_all(x, "Technology", "Tech")
+    x <- str_replace_all(x, "Environmental", "Env")
+    x <- str_replace_all(x, "Science", "Sci")
+    x <- str_replace_all(x, "Information", "Info")
+    x <- str_replace_all(x, "Management", "Mgmt")
+    x <- str_replace_all(x, "Systems", "Sys")
+    x <- str_replace_all(x, "Agricultural", "Ag")
+    str_wrap(x, 18)
+  }
+  
+  # --- CHANGED: IEEE Single Column Optimization ---
+  # Standard width is ~7 inches.
+  # Font sizes controlled by configuration variables at top
+  f_size <- if(nrow(mat) > 20) heatmap_font_size_dense else heatmap_font_size_normal
+  
+  # Use custom axis font size if specified, otherwise default to base font size
+  axis_f_size <- if(!is.null(heatmap_axis_font_size)) heatmap_axis_font_size else f_size
+  
+  # 1. Save to File
+  # Constructs filename like: heatmap_interdisciplinary_top25_jaccard.png
+  fname <- paste0("heatmap_", analysis_mode, "_top", n_top_limit, "_", file_tag, ".png")
+  
+  pheatmap(mat, 
+           labels_row = clean(r_lab), labels_col = clean(c_lab),
+           display_numbers = TRUE, number_format = "%.0f", 
+           main = paste(chart_title_prefix, ":", metric_name), 
+           fontsize = f_size, 
+           fontsize_number = f_size * 0.9, 
+           fontsize_row = axis_f_size,
+           fontsize_col = axis_f_size,
+           color = pal,
+           filename = fname,
+           width = 7, height = 7) # 7x7 fits IEEE single col well
+
+  # 2. Display in Output
+  pheatmap(mat, 
+           labels_row = clean(r_lab), labels_col = clean(c_lab),
+           display_numbers = TRUE, number_format = "%.0f", 
+           main = paste(chart_title_prefix, ":", metric_name), 
+           fontsize = f_size, 
+           fontsize_number = f_size * 0.9, 
+           fontsize_row = axis_f_size,
+           fontsize_col = axis_f_size,
+           color = pal)
+}
+
+# Generate All Plots
+plot_hm(sim_jac, "Jaccard\n(Curricular Width)", colorRampPalette(c("white", "#feedde", "#fd8d3c"))(100), "jaccard")
+plot_hm(sim_tfidf, "TF-IDF\n(Specialized Identity)", colorRampPalette(c("white", "#deebf7", "#08306b"))(100), "tfidf")
+plot_hm(sim_ovl, "Overlap\n(Subset Relations)", colorRampPalette(c("white", "#e5f5e0", "#31a354"))(100), "overlap")
+plot_hm(sim_pmi, "PMI\n(Signature Bonds)", colorRampPalette(c("white", "#fff7bc", "#d95f0e"))(100), "pmi")
+plot_hm(sim_max, "Max-Scaled\n(Core Structure)", colorRampPalette(c("white", "#f7fcf0", "#4eb3d3"))(100), "max_scaled")
+plot_hm(sim_dice, "Dice\n(Intersection Weighted)", colorRampPalette(c("white", "#f2f0f7", "#6a51a3"))(100), "dice")
+plot_hm(sim_kul, "Kulczynski\n(Mutual Fit)", colorRampPalette(c("white", "#fff5f0", "#cb181d"))(100), "kulczynski")
+
+# --- EXPORT TO JSON ---
+
+# 1. Create a readable label map for the JSON consumer
+# This allows the JSON to keep concise keys (CIPs) but provides human names
+cip_label_map <- sapply(valid_cips, function(x) {
+  # Clean up the label similar to the plot function
+  lbl <- get_smart_label(x)
+  str_remove(lbl, "Bachelor of Science in ")
+}, simplify = FALSE)
+
+# 2. Bundle all data
+export_data <- list(
+  metadata = list(
+    mode = analysis_mode,
+    top_limit = n_top_limit,
+    generated_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    description = "Pairwise similarity matrices for STEM curricula."
+  ),
+  labels = cip_label_map,
+  matrices = list(
+    jaccard = sim_jac,
+    tfidf = sim_tfidf,
+    overlap = sim_ovl,
+    pmi = sim_pmi,
+    max_scaled = sim_max,
+    dice = sim_dice,
+    kulczynski = sim_kul
+  )
+)
+
+# 3. Generate dynamic filename and save
+json_filename <- paste0("similarity_metrics_", analysis_mode, "_top", n_top_limit, ".json")
+jsonlite::write_json(export_data, json_filename, pretty = TRUE, auto_unbox = TRUE)
+
+message(paste("Successfully exported metric data to:", json_filename))
+```
