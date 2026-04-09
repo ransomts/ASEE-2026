@@ -517,7 +517,7 @@ $$\text{Kulczynski}(A,B) = \frac{1}{2}\left(\frac{|A \cap B|}{|A|} + \frac{|A \c
 :END:
 
 #+attr_latex: :height 0.35\textheight
-[[file:~/Documents/40-professional-documents/tim-headshot.jpg]]
+[[file:tim-headshot.jpg]]
 
 Dr. Tim Ransom
 tsranso@clemson.edu
