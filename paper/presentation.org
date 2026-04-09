@@ -91,14 +91,15 @@ RQ: What types of curricular relationships have emerged between undergraduate ST
   \draw[decorate,decoration={brace,amplitude=5pt,mirror},thick]
     (-1.5,-1.6) -- (3.1,-1.6) node[midway,below=5pt] {\small $A \cup B$};
 \end{tikzpicture}
+
+\vspace{0.5em}
+$$J(A,B) = \frac{|A \cap B|}{|A \cup B|}$$
 #+end_export
 
-*** Formula                                                           :BMCOL:
+*** Text                                                              :BMCOL:
 :PROPERTIES:
 :BEAMER_col: 0.5
 :END:
-
-$$J(A,B) = \frac{|A \cap B|}{|A \cup B|}$$
 
 /How much total curricular territory do two programs share?/
 
@@ -140,19 +141,19 @@ $$J(A,B) = \frac{|A \cap B|}{|A \cup B|}$$
   \node[gray,font=\tiny] at (3.25,3.1) {low weight};
   \node[orange,font=\tiny\bfseries] at (3.25,-0.3) {high weight};
 \end{tikzpicture}
+
+\vspace{0.5em}
+$$\text{cos}(\vec{a},\vec{b}) = \frac{\vec{a} \cdot \vec{b}}{|\vec{a}|\,|\vec{b}|}$$
 #+end_export
 
-*** Formula                                                           :BMCOL:
+*** Text                                                              :BMCOL:
 :PROPERTIES:
 :BEAMER_col: 0.55
 :END:
 
-$$\text{cos}(\vec{a},\vec{b}) = \frac{\vec{a} \cdot \vec{b}}{|\vec{a}|\,|\vec{b}|}$$
-
-where weights use TF-IDF: upweights courses unique to few programs; downweights ubiquitous ones
-
 /Do two programs share identity-defining coursework?/
 
+- Weights use TF-IDF: upweights courses unique to few programs; downweights ubiquitous ones
 - Resistant to program size differences
 - Isolates specialized content from gen-ed noise
 
@@ -184,14 +185,15 @@ where weights use TF-IDF: upweights courses unique to few programs; downweights 
   % Annotation
   \node[below,font=\small,align=center] at (0.3,-2.2) {Overlap $\approx$ 80\%\\Jaccard $\approx$ 8.5\%};
 \end{tikzpicture}
+
+\vspace{0.5em}
+$$\text{Overlap}(A,B) = \frac{|A \cap B|}{\min(|A|, |B|)}$$
 #+end_export
 
-*** Formula                                                           :BMCOL:
+*** Text                                                              :BMCOL:
 :PROPERTIES:
 :BEAMER_col: 0.5
 :END:
-
-$$\text{Overlap}(A,B) = \frac{|A \cap B|}{\min(|A|, |B|)}$$
 
 /Is one program's curriculum largely a subset of another's?/
 
@@ -236,14 +238,15 @@ $$\text{Overlap}(A,B) = \frac{|A \cap B|}{\min(|A|, |B|)}$$
   \draw[orange,thick,dashed,rounded corners] (3.15,1.65) rectangle (3.95,2.35);
   \node[orange,font=\tiny\bfseries,right] at (4.0,2.0) {High PMI};
 \end{tikzpicture}
+
+\vspace{0.5em}
+$$\text{PMI}(m,c) = \log\frac{p(m,c)}{p(m)\,p(c)}$$
 #+end_export
 
-*** Formula                                                           :BMCOL:
+*** Text                                                              :BMCOL:
 :PROPERTIES:
 :BEAMER_col: 0.5
 :END:
-
-$$\text{PMI}(m,c) = \log\frac{p(m,c)}{p(m)\,p(c)}$$
 
 /Do two programs share statistically surprising courses?/
 
@@ -282,14 +285,15 @@ $$\text{PMI}(m,c) = \log\frac{p(m,c)}{p(m)\,p(c)}$$
   \node[C4,font=\tiny] at (0.65,-3.0) {$\frac{|A\cap B|}{|B|}$};
   \node[font=\tiny,align=center] at (0.65,-3.6) {Average both\\perspectives};
 \end{tikzpicture}
+
+\vspace{0.5em}
+$$\text{Kulc}(A,B) = \frac{1}{2}\!\left(\frac{|A \cap B|}{|A|} + \frac{|A \cap B|}{|B|}\right)$$
 #+end_export
 
-*** Formula                                                           :BMCOL:
+*** Text                                                              :BMCOL:
 :PROPERTIES:
 :BEAMER_col: 0.5
 :END:
-
-$$\text{Kulczynski}(A,B) = \frac{1}{2}\left(\frac{|A \cap B|}{|A|} + \frac{|A \cap B|}{|B|}\right)$$
 
 /How well would a student from one program fit in the other?/
 
