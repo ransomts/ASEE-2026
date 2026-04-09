@@ -492,6 +492,63 @@ $$\text{Kulc}(A,B) = \frac{1}{2}\!\left(\frac{|A \cap B|}{|A|} + \frac{|A \cap B
 
 \note{Encourage the audience to scan the QR code and explore the data themselves. The interactive tool shows everything---not just the results we selected for the paper.}
 
+** Top Nested Relationships
+:PROPERTIES:
+:BEAMER_opt: shrink=5
+:END:
+
+High Overlap + Low Jaccard: one program's coursework is largely contained within another
+
+#+ATTR_LATEX: :align llrrr :booktabs t
+| Pair                                  | Domain | Jaccard | TF-IDF | Overlap |
+|---------------------------------------+--------+---------+--------+---------|
+| Aerospace Eng. -- Environmental Eng.  | Eng.   |    8.2% |  24.6% |   90.3% |
+| Textile Sci. -- Environmental Eng.    | Eng.   |    6.3% |   2.6% |   85.1% |
+| Construction Tech. -- Environmental Eng. | Eng.   |    6.8% |   2.8% |   80.9% |
+
+- Environmental Engineering's small course footprint is almost entirely shared with larger programs
+- Low Jaccard because the larger programs have many additional courses
+
+\note{Environmental Engineering appears as the contained program in all three cases. Its curriculum is a near-subset of these larger engineering programs.}
+
+** Top Parallel Relationships
+:PROPERTIES:
+:BEAMER_opt: shrink=5
+:END:
+
+Medium Jaccard + Low TF-IDF: shared foundational base, divergent specialization
+
+#+ATTR_LATEX: :align llrrr :booktabs t
+| Pair                                    | Domain        | Jaccard | TF-IDF | Overlap |
+|-----------------------------------------+---------------+---------+--------+---------|
+| Petroleum Eng. -- Engineering Physics   | Eng.          |   34.7% |   2.7% |   58.7% |
+| Mechanical Eng. -- Math                 | Cross-domain  |   35.9% |   6.2% |   57.3% |
+| Computer Tech. -- Engineering Physics   | Eng.          |   32.6% |   3.0% |   49.3% |
+
+- Shared prerequisites and gen-ed courses drive moderate Jaccard
+- Near-zero TF-IDF means their /identity-defining/ coursework is completely different
+
+\note{The parallel pattern is the dominant mode in engineering. These programs share the same math and physics base but specialize in entirely different directions.}
+
+** Top Convergent Relationships
+:PROPERTIES:
+:BEAMER_opt: shrink=5
+:END:
+
+High Jaccard + High TF-IDF + High Overlap: deep structural alignment
+
+#+ATTR_LATEX: :align llrrr :booktabs t
+| Pair                                    | Domain   | Jaccard | TF-IDF | Overlap |
+|-----------------------------------------+----------+---------+--------+---------|
+| Computer Eng. -- Construction Eng. Tech. | Eng.     |   47.1% |  55.3% |   78.8% |
+| Environmental Design -- BA Env. Studies | Sciences |   47.3% |  45.8% |   70.8% |
+| Chemistry -- BA Env. Studies            | Sciences |   46.1% |  45.6% |   72.0% |
+
+- These pairs share both the same courses /and/ similar enrollment frequencies
+- Often not grouped administratively despite deep curricular overlap
+
+\note{Convergent pairs are the most actionable finding. These programs could benefit from cross-listed courses, shared advising, or joint degree pathways.}
+
 * Wrap Up
 
 ** Key Takeaways
