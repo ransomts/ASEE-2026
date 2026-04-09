@@ -1,19 +1,15 @@
 # -*- mode: org; -*-
 
-* Org
-
+# Org
 #+PROPERTY: header-args :exports results
 #+options: H:2 date:nil toc:nil title:t ^:{} f:t -:t |:t ':t
 #+STARTUP: overview
 #+startup: beamer
 #+subtitle: ASEE 2026 Annual Conference
-#+author: Tim Ransom & Stephanie Damas
+#+author: Dr. Tim Ransom\textsuperscript{1} & Dr. Stephanie Damas\textsuperscript{2}
 #+email: tsranso@clemson.edu
 
-* Latex
-
-** Packages
-
+# Latex — Packages
 #+latex_header: \usepackage{lmodern}
 #+latex_header: \usepackage{tikz}
 #+latex_header: \usetikzlibrary{positioning,shapes.geometric,fit,calc,arrows.meta}
@@ -26,8 +22,7 @@
 #+latex_header: \usepackage{scalerel}
 #+latex_header: \usepackage{multimedia}
 
-** Paul Tol Bright Colors (matches matplotlib C0-C7 cycle)
-
+# Paul Tol Bright Colors (matches matplotlib C0-C7 cycle)
 #+latex_header: \definecolor{C0}{HTML}{4477AA}
 #+latex_header: \definecolor{C1}{HTML}{2299AA}
 #+latex_header: \definecolor{C2}{HTML}{228833}
@@ -37,31 +32,25 @@
 #+latex_header: \definecolor{C6}{HTML}{777777}
 #+latex_header: \definecolor{C7}{HTML}{000000}
 
-** Class
-
+# Class
 #+latex_header: \vfuzz=2pt
 #+latex_header: \hfuzz=10pt
 #+latex_class: beamer
 #+latex_class_options: [hideauthor,hideinstitute,hidetitle,aspectratio=169]
 #+latex_header: \logo{\includegraphics[width=1.5cm]{clemson_paw}}
 #+latex_header: \setbeamercolor{alerted text}{fg=orange}
-#+latex_header: \institute{Clemson University \and University of Michigan}
+#+latex_header: \institute{\textsuperscript{1}Clemson University \quad \textsuperscript{2}University of Michigan}
 
-** Theme
+# Theme
+#+latex_header: \usetheme{Aalborg}
+#+latex_header: \usecolortheme{Clemson}
 
-#+beamer_theme: Aalborg
-
-#+beamer_color_theme: Clemson
-
-#+latex_header: \logo{\includegraphics[width=1.5cm]{clemson_paw}}
-
-** Beamer
-
+# Beamer
 #+BIND: org-beamer-environments-extra (("onlyenv" "O" "\\begin{onlyenv}%a" "\\end{onlyenv}"))
-% NOTE: "show notes on second screen" produces corrupt PDFs with pdflatex.
-% Use \setbeameroption{show notes on second screen} when presenting with
-% a dual-screen PDF viewer that supports it (e.g., pdfpc).
-#+latex_header: \setbeameroption{show notes}
+# NOTE: "show notes on second screen" produces corrupt PDFs with pdflatex.
+# Use \setbeameroption{show notes on second screen} when presenting with
+# a dual-screen PDF viewer that supports it (e.g., pdfpc).
+#+latex_header: \setbeameroption{hide notes}
 #+BEAMER_HEADER: \hypersetup{colorlinks=true, linkcolor=blue, pdflang={en-US}, pdfsubject={ASEE 2026 - Vectorized Interdisciplinary Overlap}}
 
 #+latex_header: \AtBeginSection[]

@@ -1,4 +1,5 @@
 #+setupfile: setup/presenter.setup
+#+startup: beamer
 #+options: H:2
 #+title: Vectorized Interdisciplinary Overlap between STEM Domains
 
@@ -74,6 +75,7 @@ RQ: What types of curricular relationships have emerged between undergraduate ST
 :END:
 
 #+begin_export latex
+\centering
 \begin{tikzpicture}[scale=0.8]
   \fill[C0!30] (0,0) circle (1.4);
   \fill[C4!30] (1.6,0) circle (1.4);
@@ -83,9 +85,11 @@ RQ: What types of curricular relationships have emerged between undergraduate ST
   \end{scope}
   \draw[thick,C0] (0,0) circle (1.4) node[left=0.8cm] {\small Prog A};
   \draw[thick,C4] (1.6,0) circle (1.4) node[right=0.8cm] {\small Prog B};
-  \draw[<-,thick] (0.8,0) -- (0.8,-1.2) node[below] {\small $A \cap B$};
+  % Label intersection directly
+  \node[font=\small\bfseries] at (0.8,0) {$A \cap B$};
+  % Label union below with brace spanning full width
   \draw[decorate,decoration={brace,amplitude=5pt,mirror},thick]
-    (-1.4,-1.8) -- (3.0,-1.8) node[midway,below=5pt] {\small $A \cup B$};
+    (-1.5,-1.6) -- (3.1,-1.6) node[midway,below=5pt] {\small $A \cup B$};
 \end{tikzpicture}
 #+end_export
 
@@ -107,40 +111,45 @@ $$J(A,B) = \frac{|A \cap B|}{|A \cup B|}$$
 
 *** Diagram                                                           :BMCOL:
 :PROPERTIES:
-:BEAMER_col: 0.5
+:BEAMER_col: 0.45
 :END:
 
 #+begin_export latex
-\begin{tikzpicture}[scale=0.75,
-  course/.style={rounded corners=2pt, minimum width=2.2cm, minimum height=0.45cm, font=\scriptsize, align=center}]
+\centering
+\begin{tikzpicture}[scale=0.6,
+  course/.style={rounded corners=2pt, text width=2cm, minimum height=0.4cm, font=\scriptsize, align=center}]
+  % Program A label
+  \node[font=\small\bfseries] at (0,3.6) {EE};
   % Program A
-  \node[course, fill=gray!15, text=gray] at (0,2.4) {Calculus I};
-  \node[course, fill=gray!15, text=gray] at (0,1.7) {Physics I};
-  \node[course, fill=C0!50, font=\scriptsize\bfseries] at (0,1.0) {Microcontrollers};
-  \node[course, fill=C0!50, font=\scriptsize\bfseries] at (0,0.3) {Circuit Design};
-  \node[left,font=\small\bfseries] at (-1.5,1.35) {EE};
+  \node[course, fill=gray!15, text=gray] (a1) at (0,2.8) {Calculus I};
+  \node[course, fill=gray!15, text=gray] (a2) at (0,1.9) {Physics I};
+  \node[course, fill=C0!50, font=\scriptsize\bfseries] (a3) at (0,1.0) {Microcontrollers};
+  \node[course, fill=C0!50, font=\scriptsize\bfseries] (a4) at (0,0.1) {Circuit Design};
+  % Program B label
+  \node[font=\small\bfseries] at (6.5,3.6) {CompE};
   % Program B
-  \node[course, fill=gray!15, text=gray] at (3.5,2.4) {Calculus I};
-  \node[course, fill=gray!15, text=gray] at (3.5,1.7) {Physics I};
-  \node[course, fill=C4!50, font=\scriptsize\bfseries] at (3.5,1.0) {Microcontrollers};
-  \node[course, fill=C4!50, font=\scriptsize\bfseries] at (3.5,0.3) {Embedded Sys};
-  \node[right,font=\small\bfseries] at (5.0,1.35) {CompE};
-  % Arrows
-  \draw[->,thick,gray!50] (1.15,2.4) -- (2.35,2.4);
-  \draw[->,thick,gray!50] (1.15,1.7) -- (2.35,1.7);
-  \draw[->,ultra thick,orange] (1.15,1.0) -- (2.35,1.0);
+  \node[course, fill=gray!15, text=gray] (b1) at (6.5,2.8) {Calculus I};
+  \node[course, fill=gray!15, text=gray] (b2) at (6.5,1.9) {Physics I};
+  \node[course, fill=C4!50, font=\scriptsize\bfseries] (b3) at (6.5,1.0) {Microcontrollers};
+  \node[course, fill=C4!50, font=\scriptsize\bfseries] (b4) at (6.5,0.1) {Embedded Sys};
+  % Arrows (anchored to box edges)
+  \draw[->,thick,gray!50] (a1.east) -- (b1.west);
+  \draw[->,thick,gray!50] (a2.east) -- (b2.west);
+  \draw[->,ultra thick,orange] (a3.east) -- (b3.west);
   % Labels
-  \node[gray,font=\tiny] at (1.75,2.7) {low weight};
-  \node[orange,font=\tiny\bfseries] at (1.75,0.7) {high weight};
+  \node[gray,font=\tiny] at (3.25,3.1) {low weight};
+  \node[orange,font=\tiny\bfseries] at (3.25,-0.3) {high weight};
 \end{tikzpicture}
 #+end_export
 
 *** Formula                                                           :BMCOL:
 :PROPERTIES:
-:BEAMER_col: 0.5
+:BEAMER_col: 0.55
 :END:
 
-Upweights courses unique to few programs; downweights ubiquitous ones
+$$\text{cos}(\vec{a},\vec{b}) = \frac{\vec{a} \cdot \vec{b}}{|\vec{a}|\,|\vec{b}|}$$
+
+where weights use TF-IDF: upweights courses unique to few programs; downweights ubiquitous ones
 
 /Do two programs share identity-defining coursework?/
 
@@ -157,6 +166,7 @@ Upweights courses unique to few programs; downweights ubiquitous ones
 :END:
 
 #+begin_export latex
+\centering
 \begin{tikzpicture}[scale=0.8]
   % Large program
   \fill[C0!20] (0,0) circle (1.8);
@@ -198,6 +208,7 @@ $$\text{Overlap}(A,B) = \frac{|A \cap B|}{\min(|A|, |B|)}$$
 :END:
 
 #+begin_export latex
+\centering
 \begin{tikzpicture}[scale=0.75]
   % Expected
   \node[font=\small\bfseries] at (0,3.0) {Expected};
@@ -249,6 +260,7 @@ $$\text{PMI}(m,c) = \log\frac{p(m,c)}{p(m)\,p(c)}$$
 :END:
 
 #+begin_export latex
+\centering
 \begin{tikzpicture}[scale=0.8]
   % Large program
   \fill[C0!20] (-0.3,0) circle (1.7);
@@ -263,10 +275,12 @@ $$\text{PMI}(m,c) = \log\frac{p(m,c)}{p(m)\,p(c)}$$
   \draw[thick,C4] (1.5,0) circle (0.9);
   \node[C0,font=\small\bfseries] at (-1.3,1.1) {MechE};
   \node[C4,font=\small\bfseries] at (2.0,0.7) {Aero};
-  % Two arrows showing both perspectives
-  \draw[->,thick,C0] (0.8,-1.8) -- (-0.3,-1.8) node[midway,below,font=\tiny] {$\frac{|A\cap B|}{|A|}$};
-  \draw[->,thick,C4] (0.8,-2.4) -- (1.8,-2.4) node[midway,below,font=\tiny] {$\frac{|A\cap B|}{|B|}$};
-  \node[font=\tiny,align=center] at (0.5,-3.2) {Average both\\perspectives};
+  % Two arrows showing both perspectives (aligned)
+  \draw[<-,thick,C0] (-0.5,-1.8) -- (1.8,-1.8);
+  \node[C0,font=\tiny] at (0.65,-2.1) {$\frac{|A\cap B|}{|A|}$};
+  \draw[->,thick,C4] (-0.5,-2.7) -- (1.8,-2.7);
+  \node[C4,font=\tiny] at (0.65,-3.0) {$\frac{|A\cap B|}{|B|}$};
+  \node[font=\tiny,align=center] at (0.65,-3.6) {Average both\\perspectives};
 \end{tikzpicture}
 #+end_export
 
