@@ -1,93 +1,538 @@
-#+TITLE: ASEE 2026
-
-* Tim & Stephanie photos and emails
-
-Headshot: https://drive.google.com/file/d/1yr3bZfvbpJze9KnsxP7Ml8WeurXiKM8z/view?usp=sharing 
-Feel free to crop
-damas@umich.edu
-Program Assistant of Anti-Racism Research 
-Phillip J. Bowman Center for Scholarship to Practice
-University of Michigan 
-
+#+setupfile: setup/presenter.setup
+#+options: H:2
+#+title: Vectorized Interdisciplinary Overlap between STEM Domains
 
 * Intro & Context
 
-** Multidisciplinary motivation and framing
-- KSAs
-- +Notes about big ten ideas+
-- Convergence research
+** Multidisciplinary Motivation
 
-** What is MIDFIELD
+- Students exercise /agency/ in course selection beyond their declared major
+- Cross-departmental enrollment signals overlap between programs
+- NSF identifies convergence research as a top 10 BIG Idea: grand challenges "will not be solved by one discipline alone"
+- Interdisciplinary programs can broaden participation for students with marginalized identities
 
-- Data profile
-- What our data scope is
+\note{Frame the problem: students are already interdisciplinary in their behavior---we want to measure and characterize that behavior structurally.}
 
-** contribution to the field
+** What is MIDFIELD?
 
-Student enrollment as an expression of agency within their major and expression of interest in interdisciplinary topics
-	Shifting unit of analysis from student pathways to program relationships
+- Multiple-Institution Database for Investigating Engineering Longitudinal Development
+- Academic records of 98,000+ students from 18 US universities
+- Data from 2000 onward to reflect contemporary curricula
+- Contains: degree records, course enrollment, grades, demographics
 
-- Complementary similarity metrics to enrollment vectors
-- Defining interpretable relationship types
-- Nested, parallel, convergent (to be diucussed further in methodology section
-- Extend curricular analytics across disciplinary boundaries
+\note{Emphasize that MIDFIELD has been used primarily for student persistence and migration studies. We are using it differently---to characterize relationships between programs rather than student pathways.}
 
-** research question
+** Contribution to the Field
 
-RQ:  What types of curricular relationships have emerged between undergraduate STEM programs as evidenced by student enrollment patterns?
+- Shift unit of analysis from /student pathways/ to /program relationships/
+- Student enrollment as expression of agency and interdisciplinary interest
+- Complementary similarity metrics applied to enrollment vectors
+- Define three interpretable relationship types:
+  - *Nested*: one program's coursework is largely contained within another
+  - *Parallel*: shared base, divergent specialization
+  - *Convergent*: deep overlap in both general and specialized content
+- Extend curricular analytics /across/ disciplinary boundaries
 
-* methodology
+\note{Prior MIDFIELD work focuses on where students go. We focus on how programs relate to each other, using student behavior as the evidence.}
 
+** Research Question
 
-** what is data clustering
-- unsupervised machine learning
-- latent feature detection
+#+begin_export latex
+\begin{center}
+\Large\itshape
+RQ: What types of curricular relationships have emerged between undergraduate STEM programs as evidenced by student enrollment patterns?
+\end{center}
+#+end_export
 
-** what are similarity metrics
+\note{Single research question. The methodology section explains how we operationalize "types of curricular relationships."}
 
-- Jaccard
-- Tf-idf (cosine)
-- overlap 
-- Pmi
-- Kulczynski
+* Methodology
 
-** our defined relationships between programs
+** From Student Records to Program Vectors
 
-- nested
-- parallel
-- convergent
+1. Identify all courses taken by students completing each CIP code
+2. Count course frequencies across all graduates of that major
+3. Result: a high-dimensional /enrollment vector/ per program
+4. Apply similarity metrics to compare vectors pairwise
 
-** given columns, given rows, here's the table
+\note{Key insight: we go beyond binary course presence (which only enables Jaccard) to frequency data, which enables the full suite of metrics.}
 
-#+CAPTION: Metric signatures for three curricular relationship types. High/Low are relative to other pairs within the same domain.
-#+LABEL: tab:taxonomy
-#+ATTR_LATEX: :align lccccl
-| Type        | Jaccard | TF-IDF | Overlap | PMI  | Example                |
-|-------------+---------+--------+---------+------+------------------------|
-| Nested      | Low     | Low    | High    | Var. | IT \subset CS          |
-| Parallel    | Med     | Low    | Med     | Low  | EE \parallel Civil Eng |
-| Convergent  | High    | High   | High    | High | Aero \approx Ind Eng   |
+** Why Multiple Metrics?
 
-* results
+- A single metric cannot distinguish:
+  - Broad gen-ed overlap vs. specialized content overlap
+  - Subset containment vs. symmetric overlap
+  - Expected vs. statistically surprising co-enrollment
 
-** computing parallel
+\note{This is the methodological argument of the paper---no single number tells the whole story. Each metric answers a different question about the relationship.}
 
-** computing nested
+** Jaccard Index (Curricular Width)
 
-** computing convergent
+*** Diagram                                                           :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
 
-** overall stem comparison
+#+begin_export latex
+\begin{tikzpicture}[scale=0.8]
+  \fill[C0!30] (0,0) circle (1.4);
+  \fill[C4!30] (1.6,0) circle (1.4);
+  \begin{scope}
+    \clip (0,0) circle (1.4);
+    \fill[orange!60] (1.6,0) circle (1.4);
+  \end{scope}
+  \draw[thick,C0] (0,0) circle (1.4) node[left=0.8cm] {\small Prog A};
+  \draw[thick,C4] (1.6,0) circle (1.4) node[right=0.8cm] {\small Prog B};
+  \draw[<-,thick] (0.8,0) -- (0.8,-1.2) node[below] {\small $A \cap B$};
+  \draw[decorate,decoration={brace,amplitude=5pt,mirror},thick]
+    (-1.4,-1.8) -- (3.0,-1.8) node[midway,below=5pt] {\small $A \cup B$};
+\end{tikzpicture}
+#+end_export
 
-figure 1 from the writeup
+*** Formula                                                           :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
 
-** QR code to interactive page showing data
+$$J(A,B) = \frac{|A \cap B|}{|A \cup B|}$$
 
-* Wrap up
+/How much total curricular territory do two programs share?/
 
-** future work
+- Treats every course equally
+- Diluted by rare electives in large programs
 
-- Disaggregating required from elective coursework
-- Time series analysis to see curriculum evolution
-- Institutional classification
+\note{Jaccard is our baseline---simple set overlap. The Venn diagram shows that the denominator is the full union, so programs with large elective sets get lower scores even if their cores overlap.}
 
-** contact info
+** TF-IDF Cosine (Specialized Identity)
+
+*** Diagram                                                           :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+#+begin_export latex
+\begin{tikzpicture}[scale=0.75,
+  course/.style={rounded corners=2pt, minimum width=2.2cm, minimum height=0.45cm, font=\scriptsize, align=center}]
+  % Program A
+  \node[course, fill=gray!15, text=gray] at (0,2.4) {Calculus I};
+  \node[course, fill=gray!15, text=gray] at (0,1.7) {Physics I};
+  \node[course, fill=C0!50, font=\scriptsize\bfseries] at (0,1.0) {Microcontrollers};
+  \node[course, fill=C0!50, font=\scriptsize\bfseries] at (0,0.3) {Circuit Design};
+  \node[left,font=\small\bfseries] at (-1.5,1.35) {EE};
+  % Program B
+  \node[course, fill=gray!15, text=gray] at (3.5,2.4) {Calculus I};
+  \node[course, fill=gray!15, text=gray] at (3.5,1.7) {Physics I};
+  \node[course, fill=C4!50, font=\scriptsize\bfseries] at (3.5,1.0) {Microcontrollers};
+  \node[course, fill=C4!50, font=\scriptsize\bfseries] at (3.5,0.3) {Embedded Sys};
+  \node[right,font=\small\bfseries] at (5.0,1.35) {CompE};
+  % Arrows
+  \draw[->,thick,gray!50] (1.15,2.4) -- (2.35,2.4);
+  \draw[->,thick,gray!50] (1.15,1.7) -- (2.35,1.7);
+  \draw[->,ultra thick,orange] (1.15,1.0) -- (2.35,1.0);
+  % Labels
+  \node[gray,font=\tiny] at (1.75,2.7) {low weight};
+  \node[orange,font=\tiny\bfseries] at (1.75,0.7) {high weight};
+\end{tikzpicture}
+#+end_export
+
+*** Formula                                                           :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+Upweights courses unique to few programs; downweights ubiquitous ones
+
+/Do two programs share identity-defining coursework?/
+
+- Resistant to program size differences
+- Isolates specialized content from gen-ed noise
+
+\note{TF-IDF is the key complement to Jaccard. The diagram shows that shared gen-ed courses (gray, low weight) are ignored while shared specialized courses (colored, high weight) drive the score.}
+
+** Overlap Coefficient (Subset Detection)
+
+*** Diagram                                                           :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+#+begin_export latex
+\begin{tikzpicture}[scale=0.8]
+  % Large program
+  \fill[C0!20] (0,0) circle (1.8);
+  % Small program entirely inside
+  \fill[C4!40] (0.7,0) circle (0.9);
+  % Intersection highlight
+  \begin{scope}
+    \clip (0,0) circle (1.8);
+    \fill[orange!50] (0.7,0) circle (0.9);
+  \end{scope}
+  \draw[thick,C0] (0,0) circle (1.8);
+  \draw[thick,C4] (0.7,0) circle (0.9);
+  \node[C0,font=\small\bfseries] at (-1.0,1.2) {CS};
+  \node[C4,font=\small\bfseries] at (0.7,0) {IT};
+  % Annotation
+  \node[below,font=\small,align=center] at (0.3,-2.2) {Overlap $\approx$ 80\%\\Jaccard $\approx$ 8.5\%};
+\end{tikzpicture}
+#+end_export
+
+*** Formula                                                           :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+$$\text{Overlap}(A,B) = \frac{|A \cap B|}{\min(|A|, |B|)}$$
+
+/Is one program's curriculum largely a subset of another's?/
+
+- Divides by the /smaller/ set
+- High Overlap + Low Jaccard = *nested*
+
+\note{The diagram shows IT almost entirely inside CS. Overlap catches this because it divides by the smaller set (IT). Jaccard misses it because the union (all of CS) is so much larger.}
+
+** PMI (Signature Bonds)
+
+*** Diagram                                                           :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+#+begin_export latex
+\begin{tikzpicture}[scale=0.75]
+  % Expected
+  \node[font=\small\bfseries] at (0,3.0) {Expected};
+  \fill[gray!20] (0,0.3) rectangle (2.2,2.6);
+  \draw[step=0.575,gray!50] (0,0.3) grid (2.2,2.6);
+  \node[font=\tiny,rotate=90] at (-0.3,1.45) {Programs};
+  \node[font=\tiny] at (1.1,0.0) {Courses};
+  % Scatter a few dots uniformly
+  \foreach \x/\y in {0.3/0.6, 0.9/1.2, 1.5/1.8, 0.6/2.1, 1.8/0.9, 1.2/1.5, 0.3/1.8, 1.5/0.6} {
+    \fill[gray!60] (\x,\y) circle (0.08);
+  }
+  % Observed
+  \node[font=\small\bfseries] at (4.0,3.0) {Observed};
+  \fill[gray!20] (2.9,0.3) rectangle (5.1,2.6);
+  \draw[step=0.575,gray!50] (2.9,0.3) grid (5.1,2.6);
+  \node[font=\tiny] at (4.0,0.0) {Courses};
+  % Cluster in one region
+  \foreach \x/\y in {3.4/1.8, 3.6/2.0, 3.5/2.2, 3.8/1.9, 3.3/2.1} {
+    \fill[orange] (\x,\y) circle (0.10);
+  }
+  \foreach \x/\y in {4.2/0.6, 4.6/1.2, 3.2/0.8} {
+    \fill[gray!60] (\x,\y) circle (0.08);
+  }
+  % Label cluster
+  \draw[orange,thick,dashed,rounded corners] (3.15,1.65) rectangle (3.95,2.35);
+  \node[orange,font=\tiny\bfseries,right] at (4.0,2.0) {High PMI};
+\end{tikzpicture}
+#+end_export
+
+*** Formula                                                           :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+$$\text{PMI}(m,c) = \log\frac{p(m,c)}{p(m)\,p(c)}$$
+
+/Do two programs share statistically surprising courses?/
+
+- Compares observed co-occurrence to expected
+- High PMI = courses that "belong together"
+
+\note{PMI detects courses that co-occur in two programs far more than chance predicts. The left panel shows uniform distribution (what we'd expect if independent). The right shows clustering---courses that concentrate in specific program pairs have high PMI.}
+
+** Kulczynski (Mutual Resemblance)
+
+*** Diagram                                                           :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+#+begin_export latex
+\begin{tikzpicture}[scale=0.8]
+  % Large program
+  \fill[C0!20] (-0.3,0) circle (1.7);
+  % Small program
+  \fill[C4!20] (1.5,0) circle (0.9);
+  % Intersection
+  \begin{scope}
+    \clip (-0.3,0) circle (1.7);
+    \fill[orange!40] (1.5,0) circle (0.9);
+  \end{scope}
+  \draw[thick,C0] (-0.3,0) circle (1.7);
+  \draw[thick,C4] (1.5,0) circle (0.9);
+  \node[C0,font=\small\bfseries] at (-1.3,1.1) {MechE};
+  \node[C4,font=\small\bfseries] at (2.0,0.7) {Aero};
+  % Two arrows showing both perspectives
+  \draw[->,thick,C0] (0.8,-1.8) -- (-0.3,-1.8) node[midway,below,font=\tiny] {$\frac{|A\cap B|}{|A|}$};
+  \draw[->,thick,C4] (0.8,-2.4) -- (1.8,-2.4) node[midway,below,font=\tiny] {$\frac{|A\cap B|}{|B|}$};
+  \node[font=\tiny,align=center] at (0.5,-3.2) {Average both\\perspectives};
+\end{tikzpicture}
+#+end_export
+
+*** Formula                                                           :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+$$\text{Kulczynski}(A,B) = \frac{1}{2}\left(\frac{|A \cap B|}{|A|} + \frac{|A \cap B|}{|B|}\right)$$
+
+/How well would a student from one program fit in the other?/
+
+- Averages overlap from /each/ perspective
+- Robust for large vs. small programs
+
+\note{Kulczynski is important because MIDFIELD has huge enrollment imbalances. The diagram shows that it averages two different views: what fraction of MechE is shared, and what fraction of Aero is shared. This is fairer than using just one denominator.}
+
+** Relationship Taxonomy
+
+#+CAPTION: Metric signatures for three curricular relationship types
+#+ATTR_LATEX: :align lccccl :booktabs t
+| Type       | Jaccard | TF-IDF | Overlap | PMI  | Example                |
+|------------+---------+--------+---------+------+------------------------|
+| Nested     | Low     | Low    | High    | Var. | IT \subset CS          |
+| Parallel   | Med     | Low    | Med     | Low  | EE \parallel Civil Eng |
+| Convergent | High    | High   | High    | High | Aero \approx Ind Eng   |
+
+- The /pattern/ across metrics defines the relationship, not any single score
+- Relative values within a domain matter more than absolute percentages
+
+\note{This table is the core framework. Walk through each row: nested = high overlap but low Jaccard means containment. Parallel = shared base, divergent specialization. Convergent = high everything means deep structural alignment.}
+
+* Results
+
+** STEM Overview: Mathematics as a Bridge
+
+*** Heatmaps                                                          :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+#+attr_latex: :height 0.55\textheight
+[[file:../analysis/heatmaps/heatmap_interdisciplinary_top10_jaccard.png]]
+
+*** Interpretation                                                    :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+- Math shares coursework with Mech Eng (~36%), Physics (~23%), CS (~21%)
+- /Generalist connector/ across STEM
+- Validates the approach
+
+\note{This slide grounds the audience. These relationships are intuitive---Math is indeed central to STEM. The method works.}
+
+** STEM Overview: Nested Patterns Emerge
+
+*** Heatmaps                                                          :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+#+attr_latex: :height 0.55\textheight
+[[file:../analysis/heatmaps/heatmap_interdisciplinary_top10_overlap.png]]
+
+*** Interpretation                                                    :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+- Physics--Mech Eng: ~65% Overlap vs. ~20% Jaccard
+- High Overlap + Low Jaccard = *nested* relationship
+- Physics coursework is largely contained within Mech Eng
+- A single metric would miss this asymmetry
+
+\note{Compare the two heatmaps. Jaccard says Physics and MechEng are somewhat related. Overlap reveals the structural truth: Physics is nested within MechEng's broader curriculum.}
+
+** Engineering: The Parallel Pattern
+
+*** Heatmaps                                                          :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.55
+:END:
+
+#+attr_latex: :height 0.55\textheight
+[[file:../analysis/heatmaps/heatmap_engineering_top10_tfidf.png]]
+
+*** Interpretation                                                    :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.45
+:END:
+
+- Median TF-IDF across engineering: ~3%
+- Engineering programs share a large common core...
+- ...but specialized content is /very/ different
+- This is the *parallel* pattern: shared base, divergent identity
+- Exception: EE--CompE share ~33% Jaccard + high TF-IDF (merged departments)
+
+\note{The general engineering model dominates. Shared math, physics, intro engineering---but once you get to upper-division courses, each program is distinct. The low TF-IDF median is the baseline that makes the next result so striking.}
+
+** Engineering: Aerospace--Industrial Convergence
+
+*** Heatmaps                                                          :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.55
+:END:
+
+#+attr_latex: :height 0.30\textheight
+[[file:../analysis/heatmaps/heatmap_engineering_top10_jaccard.png]]
+
+#+attr_latex: :height 0.30\textheight
+[[file:../analysis/heatmaps/heatmap_engineering_top10_kulczynski.png]]
+
+*** Interpretation                                                    :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.45
+:END:
+
+- *Flagship result*: Aero--Industrial scores highest on /every/ metric:
+  - TF-IDF ~45%, Jaccard ~47%
+  - Kulczynski ~66%, Overlap ~79%
+- Textbook *convergent* relationship
+- No one groups these administratively
+
+\note{This is the result the audience should remember. Two programs that no one would group together are the most similar pair in all of engineering on every metric. Shared systems analysis and applied statistics content drives the similarity.}
+
+** Sciences: Cross-CIP Clustering
+
+*** Heatmaps                                                          :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.55
+:END:
+
+#+attr_latex: :height 0.30\textheight
+[[file:../analysis/heatmaps/heatmap_sciences_top10_pmi.png]]
+
+#+attr_latex: :height 0.30\textheight
+[[file:../analysis/heatmaps/heatmap_sciences_top10_tfidf.png]]
+
+*** Interpretation                                                    :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.45
+:END:
+
+- Animal Sci (CIP 01) clusters with Biochemistry & Animal Bio (CIP 26)
+- Strongest PMI: Animal Sci--Biochem (~23%)
+- Crosses CIP family boundaries
+- Math--Chem TF-IDF (~49%): strongest specialized pair
+
+\note{PMI is the star metric here. It finds that these three programs from different CIP families share courses at rates far above chance. The big program (Bio Sci) actually has the weakest surprising connections---its breadth dilutes specificity.}
+
+** Computing: The Nested Hierarchy
+
+*** Heatmaps                                                          :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.55
+:END:
+
+#+attr_latex: :height 0.30\textheight
+[[file:../analysis/heatmaps/heatmap_computing_top10_overlap.png]]
+
+#+attr_latex: :height 0.30\textheight
+[[file:../analysis/heatmaps/heatmap_computing_top10_jaccard.png]]
+
+*** Interpretation                                                    :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.45
+:END:
+
+- IT--CS: *cleanest nested example* in the dataset
+  - Overlap: ~80%
+  - Jaccard: ~8.5%
+  - Largest divergence between these metrics anywhere
+- CS--CompE: mixed nested/convergent (Overlap ~52%, TF-IDF ~29%)
+- Computing is organized as /nested hierarchies/ branching from CS
+
+\note{If you only looked at Jaccard, you'd say IT and CS are barely related. Overlap reveals the truth: nearly all IT coursework is contained within CS. This is why single-metric analysis is insufficient.}
+
+** Interactive Explorer
+:PROPERTIES:
+:BEAMER_opt: shrink=10
+:END:
+
+*** QR Code                                                           :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.4
+:END:
+
+#+attr_latex: :height 0.50\textheight
+[[file:../site/qrcode.png]]
+
+*** Description                                                       :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.6
+:END:
+
+- All metrics, domains, and program pairs
+- Heatmaps with dendrograms
+- Computing, engineering, sciences, cross-domain
+
+#+begin_export latex
+\vspace{0.5em}
+\small\url{https://ransomts.github.io/ASEE-2026/}
+#+end_export
+
+\note{Encourage the audience to scan the QR code and explore the data themselves. The interactive tool shows everything---not just the results we selected for the paper.}
+
+* Wrap Up
+
+** Key Takeaways
+:PROPERTIES:
+:BEAMER_opt: shrink=10
+:END:
+
+- STEM domains are interdisciplinary in /structurally different ways/
+  - *Engineering*: parallel (shared core, divergent specialization)
+  - *Computing*: nested hierarchies from CS
+  - *Sciences*: cross-boundary clusters
+- One-size-fits-all policy won't work
+
+\note{Synthesis slide. The structural difference between domains is the main takeaway. The Aerospace--Industrial convergence is invisible to departmental taxonomy---multi-metric analysis is needed.}
+
+** Practical Implications
+
+- *Nested* (IT \subset CS): guide students toward parent field's electives
+- *Parallel* (engineering): coordinate shared prerequisites
+- *Convergent* (Aero \approx Ind Eng): cross-listed courses, certificates, dual degrees
+
+\note{Give the audience something actionable. These aren't just academic categories---they suggest specific interventions at the advising, departmental, and university level.}
+
+** Future Work
+:PROPERTIES:
+:BEAMER_opt: shrink=10
+:END:
+
+- Disaggregate required vs. elective coursework
+- Time series: are programs converging or diverging?
+- Institutional disaggregation across universities
+- Validate against known interdisciplinary programs
+
+\note{Acknowledge limitations honestly. The biggest one is that we can't currently separate required from elective enrollment.}
+
+** Contact
+
+*** Tim Ransom                                                        :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+#+attr_latex: :height 0.35\textheight
+[[file:~/Documents/40-professional-documents/tim-headshot.jpg]]
+
+Dr. Tim Ransom
+tsranso@clemson.edu
+Clemson University
+
+*** Stephanie Damas                                                   :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+
+#+attr_latex: :height 0.35\textheight
+[[file:steph-photo.jpg]]
+
+Dr. Stephanie Damas
+damas@umich.edu
+University of Michigan
+
+\note{Thank the audience. Remind them of the QR code for the interactive explorer.}

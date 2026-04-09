@@ -1,0 +1,73 @@
+# -*- mode: org; -*-
+
+* Org
+
+#+PROPERTY: header-args :exports results
+#+options: H:2 date:nil toc:nil title:t ^:{} f:t -:t |:t ':t
+#+STARTUP: overview
+#+startup: beamer
+#+subtitle: ASEE 2026 Annual Conference
+#+author: Tim Ransom & Stephanie Damas
+#+email: tsranso@clemson.edu
+
+* Latex
+
+** Packages
+
+#+latex_header: \usepackage{lmodern}
+#+latex_header: \usepackage{tikz}
+#+latex_header: \usetikzlibrary{positioning,shapes.geometric,fit,calc,arrows.meta}
+#+latex_header: \usetikzlibrary{decorations.pathreplacing,matrix,shapes.callouts,backgrounds}
+#+latex_header: \usepackage[export]{adjustbox}
+#+latex_header: \usepackage{colortbl}
+#+latex_header: \usepackage{booktabs}
+#+latex_header: \usepackage{pgfpages}
+#+latex_header: \usepackage{qrcode}
+#+latex_header: \usepackage{scalerel}
+#+latex_header: \usepackage{multimedia}
+
+** Paul Tol Bright Colors (matches matplotlib C0-C7 cycle)
+
+#+latex_header: \definecolor{C0}{HTML}{4477AA}
+#+latex_header: \definecolor{C1}{HTML}{2299AA}
+#+latex_header: \definecolor{C2}{HTML}{228833}
+#+latex_header: \definecolor{C3}{HTML}{999933}
+#+latex_header: \definecolor{C4}{HTML}{EE6677}
+#+latex_header: \definecolor{C5}{HTML}{AA3377}
+#+latex_header: \definecolor{C6}{HTML}{777777}
+#+latex_header: \definecolor{C7}{HTML}{000000}
+
+** Class
+
+#+latex_header: \vfuzz=2pt
+#+latex_header: \hfuzz=10pt
+#+latex_class: beamer
+#+latex_class_options: [hideauthor,hideinstitute,hidetitle,aspectratio=169]
+#+latex_header: \logo{\includegraphics[width=1.5cm]{clemson_paw}}
+#+latex_header: \setbeamercolor{alerted text}{fg=orange}
+#+latex_header: \institute{Clemson University \and University of Michigan}
+
+** Theme
+
+#+beamer_theme: Aalborg
+
+#+beamer_color_theme: Clemson
+
+#+latex_header: \logo{\includegraphics[width=1.5cm]{clemson_paw}}
+
+** Beamer
+
+#+BIND: org-beamer-environments-extra (("onlyenv" "O" "\\begin{onlyenv}%a" "\\end{onlyenv}"))
+% NOTE: "show notes on second screen" produces corrupt PDFs with pdflatex.
+% Use \setbeameroption{show notes on second screen} when presenting with
+% a dual-screen PDF viewer that supports it (e.g., pdfpc).
+#+latex_header: \setbeameroption{show notes}
+#+BEAMER_HEADER: \hypersetup{colorlinks=true, linkcolor=blue, pdflang={en-US}, pdfsubject={ASEE 2026 - Vectorized Interdisciplinary Overlap}}
+
+#+latex_header: \AtBeginSection[]
+#+latex_header: {
+#+latex_header:   \begin{frame}
+#+latex_header:     \frametitle{Table of Contents}
+#+latex_header:     \tableofcontents[currentsection]
+#+latex_header:   \end{frame}
+#+latex_header: }
