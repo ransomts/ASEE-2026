@@ -1,6 +1,7 @@
 #+title: WIP: Vectorized Interdisciplinary Overlap between STEM Domains using the MIDFIELD Dataset
-#+DATE: \today
-#+options: toc:nil author:nil
+#+AUTHOR: Dr. Tim Ransom\thanks{Clemson University, tsranso@clemson.edu} \and Dr. Stephanie Damas\thanks{University of Michigan, damas@umich.edu}
+#+DATE:
+#+options: toc:nil author:t date:nil
 
 #+LATEX_CLASS: article
 #+LATEX_CLASS_OPTIONS: [12pt]
@@ -9,6 +10,7 @@
 #+LATEX_HEADER: \usepackage[parfill]{parskip}
 #+LATEX_HEADER: \usepackage{amsmath}
 #+LATEX_HEADER: \usepackage{graphicx}
+#+LATEX_HEADER: \graphicspath{{../analysis/heatmaps/}{./}}
 #+LATEX_HEADER: \usepackage{wrapfig}
 #+LATEX_HEADER: \usepackage{needspace}
 #+LATEX_HEADER: \usepackage{subcaption}
@@ -16,9 +18,10 @@
 #+LATEX_HEADER: \titleformat*{\section}{\normalsize\bfseries}
 #+LATEX_HEADER: \titleformat*{\subsection}{\normalsize\bfseries}
 #+LATEX_HEADER: \usepackage{titling}
-#+LATEX_HEADER: \pretitle{\begin{center}\large\bfseries}
+#+LATEX_HEADER: \pretitle{\begin{center}\fontsize{14}{17}\selectfont\bfseries}
 #+LATEX_HEADER: \posttitle{\end{center}}
-#+LATEX_HEADER: \PassOptionsToPackage{numbers,super}{natbib}
+#+LATEX_HEADER: \pagestyle{empty}
+#+LATEX_HEADER: \PassOptionsToPackage{numbers,sort&compress}{natbib}
 #+BIBLIOGRAPHY: bibliography.bib
 #+cite_export: natbib unsrtnat
 
@@ -299,10 +302,14 @@ In the computing domain, the multi-metric analysis highlights structural differe
 \end{figure}
 #+end_export
 
-#+ATTR_LATEX: :width 0.5\columnwidth
-#+CAPTION: TF-IDF Similarity in Computing Degrees
-#+LABEL: fig:computing_tfidf
-[[file:heatmap_computing_top10_tfidf.png]]
+#+begin_export latex
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.5\columnwidth]{heatmap_computing_top10_tfidf.png}
+\caption{TF-IDF Similarity in Computing Degrees}
+\label{fig:computing_tfidf}
+\end{figure}
+#+end_export
 
 # METRICS CONJUNCTION: Overlap + Jaccard (IT-CS nested). Both heatmaps shown (fig:computing_overlap, fig:computing_jaccard).
 The cleanest nested relationship in the computing domain is between Information Technology and Computer Science. IT shares a very high Overlap Coefficient (~80%, Figure \ref{fig:computing_overlap}) with CS but a much lower Jaccard score (~8.5%, Figure \ref{fig:computing_jaccard})---the largest divergence between these two metrics in the entire dataset. Nearly all IT coursework overlaps with CS, but IT students also take a distinct set of courses (e.g., networking, systems administration) that CS students largely do not. A single-metric analysis using only Jaccard would classify IT and CS as barely related; the Overlap Coefficient reveals that IT functions as a specialized subset of CS.
